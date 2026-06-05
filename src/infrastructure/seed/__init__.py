@@ -6,6 +6,7 @@ from src.infrastructure.seed.loader import (
     SeedLoadResult,
     load_seed_if_offline,
     load_seed_into_db,
+    load_weather_seed_if_offline,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "SeedLoadResult",
     "load_seed_if_offline",
     "load_seed_into_db",
+    "load_weather_seed_if_offline",
 ]

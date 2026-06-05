@@ -8,7 +8,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from src.config import Settings, load_settings
-from src.infrastructure.db.repository import InsertResult, OrbitFireRepository, open_repository
+from src.infrastructure.db.repository import OrbitFireRepository, open_repository, tally_insert
 
 FIRE_SEED_FILE = "fire_events_seed.csv"
 WEATHER_SEED_FILE = "weather_daily_seed.csv"
@@ -22,6 +22,20 @@ class SeedLoadResult:
     fires_skipped: int
     weather_inserted: int
     weather_skipped: int
+
+
+def load_weather_seed_if_offline(settings: Settings | None = None) -> tuple[int, int] | None:
+    """Persiste somente clima do seed quando OFFLINE_MODE; retorna None se online."""
+    cfg = settings or load_settings()
+    if not cfg.offline_mode:
+        return None
+
+    repository, session, engine = open_repository(cfg.db_path)
+    try:
+        return _load_weather_seed(cfg.seed_dir / WEATHER_SEED_FILE, repository)
+    finally:
+        session.close()
+        engine.dispose()
 
 
 def load_seed_if_offline(settings: Settings | None = None) -> SeedLoadResult | None:
@@ -64,7 +78,7 @@ def _load_fire_seed(path: Path, repository: OrbitFireRepository) -> tuple[int, i
             frp=_optional_float(row.get("frp")),
             cell_id=row.get("cell_id") or None,
         )
-        inserted, skipped = _tally_insert(result, inserted, skipped)
+        inserted, skipped = tally_insert(result, inserted, skipped)
     return inserted, skipped
 
 
@@ -80,15 +94,8 @@ def _load_weather_seed(path: Path, repository: OrbitFireRepository) -> tuple[int
             precip_mm=_optional_float(row.get("precip_mm")),
             wind_speed=_optional_float(row.get("wind_speed")),
         )
-        inserted, skipped = _tally_insert(result, inserted, skipped)
+        inserted, skipped = tally_insert(result, inserted, skipped)
     return inserted, skipped
-
-
-def _tally_insert(result: InsertResult, inserted: int, skipped: int) -> tuple[int, int]:
-    """Atualiza contadores de insert/dedup a partir do InsertResult."""
-    if result.inserted:
-        return inserted + 1, skipped
-    return inserted, skipped + 1
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:

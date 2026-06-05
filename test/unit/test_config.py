@@ -23,6 +23,9 @@ def test_region_and_bbox_centro_oeste() -> None:
     assert DEFAULT_BBOX.lat_max == pytest.approx(-12.0)
     assert DEFAULT_BBOX.lon_min == pytest.approx(-61.6)
     assert DEFAULT_BBOX.lon_max == pytest.approx(-45.0)
+    assert DEFAULT_BBOX.as_firms_area() == "-61.6,-24.1,-45.0,-12.0"
+    assert DEFAULT_BBOX.contains(-16.0, -47.0) is True
+    assert DEFAULT_BBOX.contains(-30.0, -47.0) is False
 
 
 def test_grid_deg_and_ufs() -> None:

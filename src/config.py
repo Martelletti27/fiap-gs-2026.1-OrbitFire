@@ -15,6 +15,13 @@ GRID_DEG = 0.10
 
 # Produtos FIRMS ativos na ingestao (VIIRS e MODIS)
 FIRMS_SOURCES: tuple[str, ...] = ("VIIRS_NRT", "MODIS_NRT")
+FIRMS_BASE_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
+FIRMS_DAY_RANGE = 5
+
+# Open-Meteo — clima diario sem API key
+OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+OPEN_METEO_TIMEZONE = "America/Sao_Paulo"
+WEATHER_DAY_RANGE = 7
 
 # Nomes de arquivo NASA FIRMS por produto logico (S1)
 FIRMS_NASA_MAP: dict[str, str] = {
@@ -31,6 +38,17 @@ class BBox:
     lat_max: float
     lon_min: float
     lon_max: float
+
+    def contains(self, lat: float, lon: float) -> bool:
+        """Indica se o ponto esta dentro do retangulo."""
+        return (
+            self.lat_min <= lat <= self.lat_max
+            and self.lon_min <= lon <= self.lon_max
+        )
+
+    def as_firms_area(self) -> str:
+        """Formata bbox como west,south,east,north para API NASA FIRMS."""
+        return f"{self.lon_min},{self.lat_min},{self.lon_max},{self.lat_max}"
 
 
 # Bbox aproximado do Centro-Oeste

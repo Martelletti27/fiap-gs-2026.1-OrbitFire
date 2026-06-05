@@ -37,6 +37,13 @@ class InsertResult:
     row_id: int | None = None
 
 
+def tally_insert(result: InsertResult, inserted: int, skipped: int) -> tuple[int, int]:
+    """Atualiza contadores de insert/dedup a partir do InsertResult."""
+    if result.inserted:
+        return inserted + 1, skipped
+    return inserted, skipped + 1
+
+
 class OrbitFireRepository:
     """CRUD basico para as tabelas do POC."""
 
@@ -118,6 +125,11 @@ class OrbitFireRepository:
             probability=probability,
         )
         return self._persist(row)
+
+    def list_grid_cells(self) -> list[GridCell]:
+        """Retorna todas as celulas da grade persistidas."""
+        stmt = select(GridCell)
+        return list(self._session.scalars(stmt).all())
 
     def count_grid_cells(self) -> int:
         """Total de celulas cadastradas."""
