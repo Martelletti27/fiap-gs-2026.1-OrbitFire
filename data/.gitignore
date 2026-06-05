@@ -1,1 +1,12 @@
-
+*.db
+raw/*
+!raw/**/
+!raw/**/.gitkeep
+processed/*
+!processed/**/
+!processed/**/.gitkeep
+models/*.pkl
+!models/.gitkeep
+seed/*
+!seed/.gitkeep
+!seed/*.csv

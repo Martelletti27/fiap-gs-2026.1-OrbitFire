@@ -1,2 +1,19 @@
 # Configuracao local (nao versionar)
 .cursor/
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Dados gerados
+data/*.db
+data/raw/*
+!data/raw/**/
+!data/raw/**/.gitkeep
+data/processed/*
+!data/processed/**/
+!data/processed/**/.gitkeep
+data/models/*.pkl
+!data/models/**/
+!data/models/.gitkeep
