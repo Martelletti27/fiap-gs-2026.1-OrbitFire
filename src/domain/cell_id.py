@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Iterator
 
@@ -45,6 +46,33 @@ def assign_uf(lat: float, lon: float) -> str | None:
         if uf in UFS and uf_box.contains(lat, lon):
             return uf
     return None
+
+
+def snap_point_to_cell_id(
+    lat: float,
+    lon: float,
+    bbox: BBox,
+    grid_deg: float,
+) -> str | None:
+    """Mapeia coordenada FIRMS para cell_id da grade configurada."""
+    if not bbox.contains(lat, lon):
+        return None
+
+    half = grid_deg / 2.0
+    lat_center = bbox.lat_min + half + math.floor(
+        (lat - bbox.lat_min - half + 1e-12) / grid_deg
+    ) * grid_deg
+    lon_center = bbox.lon_min + half + math.floor(
+        (lon - bbox.lon_min - half + 1e-12) / grid_deg
+    ) * grid_deg
+    lat_center = round(lat_center, 4)
+    lon_center = round(lon_center, 4)
+
+    if not bbox.contains(lat_center, lon_center):
+        return None
+
+    uf = assign_uf(lat_center, lon_center)
+    return format_cell_id(lat_center, lon_center, uf)
 
 
 def format_cell_id(lat_center: float, lon_center: float, uf: str | None = None) -> str:

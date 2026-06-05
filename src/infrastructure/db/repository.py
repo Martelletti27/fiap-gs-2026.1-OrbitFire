@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
+from typing import TypeVar
 
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.engine import Engine
@@ -42,6 +45,20 @@ def tally_insert(result: InsertResult, inserted: int, skipped: int) -> tuple[int
     if result.inserted:
         return inserted + 1, skipped
     return inserted, skipped + 1
+
+
+T = TypeVar("T")
+
+
+def persist_many(
+    items: Iterable[T],
+    insert_fn: Callable[[T], InsertResult],
+) -> tuple[int, int]:
+    """Insere lote com contagem inserted/skipped."""
+    inserted, skipped = 0, 0
+    for item in items:
+        inserted, skipped = tally_insert(insert_fn(item), inserted, skipped)
+    return inserted, skipped
 
 
 class OrbitFireRepository:
@@ -131,6 +148,16 @@ class OrbitFireRepository:
         stmt = select(GridCell)
         return list(self._session.scalars(stmt).all())
 
+    def list_fire_events(self) -> list[FireEvent]:
+        """Retorna todos os focos FIRMS persistidos."""
+        stmt = select(FireEvent)
+        return list(self._session.scalars(stmt).all())
+
+    def list_weather_daily(self) -> list[WeatherDaily]:
+        """Retorna todos os registros climaticos diarios."""
+        stmt = select(WeatherDaily)
+        return list(self._session.scalars(stmt).all())
+
     def count_grid_cells(self) -> int:
         """Total de celulas cadastradas."""
         return self._count(GridCell)
@@ -175,3 +202,18 @@ def open_repository(
     init_db(engine)
     session = sessionmaker(bind=engine, future=True)()
     return OrbitFireRepository(session), session, engine
+
+
+@contextmanager
+def repository_session(
+    db_path: Path | None = None,
+    *,
+    memory: bool = False,
+) -> Iterator[OrbitFireRepository]:
+    """Context manager que fecha sessao e engine ao sair."""
+    repository, session, engine = open_repository(db_path, memory=memory)
+    try:
+        yield repository
+    finally:
+        session.close()
+        engine.dispose()

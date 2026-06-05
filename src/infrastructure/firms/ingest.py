@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.config import FIRMS_DAY_RANGE, FIRMS_NASA_MAP, Settings, ensure_data_dirs, load_settings
-from src.infrastructure.db.repository import OrbitFireRepository, open_repository, tally_insert
+from src.infrastructure.db.repository import OrbitFireRepository, persist_many, repository_session
 from src.infrastructure.firms.client import FirmsAreaClient
 from src.infrastructure.firms.parser import ParsedFireEvent, parse_firms_csv
 from src.infrastructure.seed.loader import load_seed_if_offline
@@ -39,8 +39,7 @@ def run_firms_ingest(settings: Settings | None = None) -> list[FirmsIngestResult
         raise ValueError("FIRMS_MAP_KEY obrigatoria quando OFFLINE_MODE=0")
 
     client = FirmsAreaClient(cfg.firms_map_key)
-    repository, session, engine = open_repository(cfg.db_path)
-    try:
+    with repository_session(cfg.db_path) as repository:
         results: list[FirmsIngestResult] = []
         for logical_source in cfg.firms_sources:
             nasa_source = FIRMS_NASA_MAP[logical_source]
@@ -66,9 +65,6 @@ def run_firms_ingest(settings: Settings | None = None) -> list[FirmsIngestResult
                 raw_path,
             )
         return results
-    finally:
-        session.close()
-        engine.dispose()
 
 
 def _ingest_offline(cfg: Settings) -> list[FirmsIngestResult]:
@@ -103,18 +99,17 @@ def _persist_events(
     events: list[ParsedFireEvent],
 ) -> tuple[int, int]:
     """Insere eventos com deduplicacao via repositorio."""
-    inserted, skipped = 0, 0
-    for event in events:
-        result = repository.add_fire_event(
+    return persist_many(
+        events,
+        lambda event: repository.add_fire_event(
             source=event.source,
             acq_datetime=event.acq_datetime,
             lat=event.lat,
             lon=event.lon,
             confidence=event.confidence,
             frp=event.frp,
-        )
-        inserted, skipped = tally_insert(result, inserted, skipped)
-    return inserted, skipped
+        ),
+    )
 
 
 def main() -> None:

@@ -6,7 +6,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.application.build_grid import GRID_PARQUET_NAME, build_and_persist_grid
+from src.application.build_grid import build_and_persist_grid
+from src.application.processed_io import GRID_CELLS_PARQUET
 from src.config import BBox, load_settings
 from src.domain.cell_id import build_grid_cells
 from src.infrastructure.db.repository import open_repository
@@ -69,4 +70,4 @@ def test_build_and_persist_grid_is_idempotent(grid_settings) -> None:
 def test_parquet_written_to_processed_dir(grid_settings) -> None:
     """Arquivo deve ficar em data/processed/grid_cells.parquet."""
     report = build_and_persist_grid(grid_settings)
-    assert report.parquet_path == grid_settings.processed_dir / GRID_PARQUET_NAME
+    assert report.parquet_path == grid_settings.processed_dir / GRID_CELLS_PARQUET

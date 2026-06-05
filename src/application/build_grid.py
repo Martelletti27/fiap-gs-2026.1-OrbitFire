@@ -6,15 +6,12 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-import pandas as pd
-
+from src.application.processed_io import GRID_CELLS_PARQUET, write_parquet
 from src.config import Settings, ensure_data_dirs, load_settings
 from src.domain.cell_id import GridCellSpec, build_grid_cells
-from src.infrastructure.db.repository import OrbitFireRepository, open_repository, tally_insert
+from src.infrastructure.db.repository import OrbitFireRepository, persist_many, repository_session
 
 logger = logging.getLogger(__name__)
-
-GRID_PARQUET_NAME = "grid_cells.parquet"
 
 
 @dataclass(frozen=True)
@@ -33,8 +30,7 @@ def build_and_persist_grid(settings: Settings | None = None) -> GridBuildReport:
     ensure_data_dirs(cfg)
 
     specs = build_grid_cells(cfg.bbox, cfg.grid_deg)
-    repository, session, engine = open_repository(cfg.db_path)
-    try:
+    with repository_session(cfg.db_path) as repository:
         inserted, skipped = _persist_cells(repository, specs)
         parquet_path = _export_parquet(cfg.processed_dir, specs)
         logger.info(
@@ -50,9 +46,6 @@ def build_and_persist_grid(settings: Settings | None = None) -> GridBuildReport:
             skipped=skipped,
             parquet_path=parquet_path,
         )
-    finally:
-        session.close()
-        engine.dispose()
 
 
 def _persist_cells(
@@ -60,22 +53,19 @@ def _persist_cells(
     specs: list[GridCellSpec],
 ) -> tuple[int, int]:
     """Insere celulas com deduplicacao por cell_id."""
-    inserted, skipped = 0, 0
-    for spec in specs:
-        result = repository.add_grid_cell(
+    return persist_many(
+        specs,
+        lambda spec: repository.add_grid_cell(
             cell_id=spec.cell_id,
             lat_center=spec.lat_center,
             lon_center=spec.lon_center,
             uf=spec.uf,
-        )
-        inserted, skipped = tally_insert(result, inserted, skipped)
-    return inserted, skipped
+        ),
+    )
 
 
 def _export_parquet(processed_dir: Path, specs: list[GridCellSpec]) -> Path:
     """Exporta snapshot da grade para data/processed/grid_cells.parquet."""
-    processed_dir.mkdir(parents=True, exist_ok=True)
-    path = processed_dir / GRID_PARQUET_NAME
     rows = [
         {
             "cell_id": spec.cell_id,
@@ -85,8 +75,7 @@ def _export_parquet(processed_dir: Path, specs: list[GridCellSpec]) -> Path:
         }
         for spec in specs
     ]
-    pd.DataFrame(rows).to_parquet(path, index=False)
-    return path
+    return write_parquet(processed_dir, GRID_CELLS_PARQUET, rows)
 
 
 def main() -> None:

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.config import WEATHER_DAY_RANGE, Settings, ensure_data_dirs, load_settings
-from src.infrastructure.db.repository import OrbitFireRepository, open_repository, tally_insert
+from src.infrastructure.db.repository import OrbitFireRepository, persist_many, repository_session
 from src.infrastructure.seed.loader import load_weather_seed_if_offline
 from src.infrastructure.weather.client import OpenMeteoClient
 from src.infrastructure.weather.parser import ParsedWeatherDaily, parse_open_meteo_daily
@@ -38,8 +38,7 @@ def run_weather_ingest(settings: Settings | None = None) -> list[WeatherIngestRe
         return _ingest_offline(cfg)
 
     client = OpenMeteoClient()
-    repository, session, engine = open_repository(cfg.db_path)
-    try:
+    with repository_session(cfg.db_path) as repository:
         targets = resolve_weather_targets(cfg, repository)
         if not targets:
             raise ValueError("Nenhum alvo de clima encontrado para ingestao")
@@ -72,9 +71,6 @@ def run_weather_ingest(settings: Settings | None = None) -> list[WeatherIngestRe
                 raw_path,
             )
         return results
-    finally:
-        session.close()
-        engine.dispose()
 
 
 def _ingest_offline(cfg: Settings) -> list[WeatherIngestResult]:
@@ -112,18 +108,17 @@ def _persist_records(
     records: list[ParsedWeatherDaily],
 ) -> tuple[int, int]:
     """Insere registros climaticos com deduplicacao por celula e dia."""
-    inserted, skipped = 0, 0
-    for record in records:
-        result = repository.add_weather_daily(
+    return persist_many(
+        records,
+        lambda record: repository.add_weather_daily(
             cell_id=cell_id,
             day=record.day,
             temp_max=record.temp_max,
             temp_min=record.temp_min,
             precip_mm=record.precip_mm,
             wind_speed=record.wind_speed,
-        )
-        inserted, skipped = tally_insert(result, inserted, skipped)
-    return inserted, skipped
+        ),
+    )
 
 
 def main() -> None:
