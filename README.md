@@ -85,6 +85,33 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 - <b>README.md</b>: Guia geral do projeto (este arquivo).
 
 
+## 🏗 Arquitetura
+
+Fluxo ponta a ponta:
+
+```
+NASA FIRMS + Open-Meteo
+        ↓
+   Ingestão (SQLite)
+        ↓
+ Features + Labels → Dataset → LightGBM (treino)
+        ↓
+ Inferência (predict_risk) → risk_scores
+        ↓
+ Priorização de brigadas → API FastAPI → Dashboard Streamlit
+```
+
+| Camada | Pasta | Responsabilidade |
+|--------|-------|------------------|
+| Domínio | `src/domain/` | Células, features, labels, risk score, contorno do TO |
+| Aplicação | `src/application/` | Grade, dataset, treino, inferência, ranking |
+| Infraestrutura | `src/infrastructure/` | FIRMS, clima, SQLite, ML |
+| API | `src/api/` | REST: mapa, ranking, focos, saúde |
+| Dashboard | `src/dashboard/` | Painel Streamlit (somente HTTP à API) |
+
+O dashboard **não** acessa o banco diretamente — consome `API_BASE_URL`.
+
+
 ## 📎 Links e Observações
 
 > **Pendente para entrega (S7):** preencher esta seção antes do envio na plataforma.
@@ -100,26 +127,107 @@ Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
 ## 🔧 Como executar o código
 
-> **Pendente para entrega (S7):** documentar passo a passo completo antes do envio na plataforma.
+### Pré-requisitos
 
-**Dashboard (prévia):** com a API no ar e scores já inferidos no SQLite, abra outro terminal na raiz do projeto:
+- **Python 3.10+**
+- Chave NASA FIRMS ([cadastro MAP_KEY](https://firms.modaps.eosdis.nasa.gov/api/map_key/))
+- Conexão com internet (ingestão e treino) ou modo demo offline
+
+### Instalação
+
+Na raiz do repositório:
 
 ```powershell
-# Terminal 1 — API
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
 
-# Terminal 2 — painel Streamlit (http://localhost:8501)
+### Configuração
+
+Copie o template e preencha a chave FIRMS:
+
+```powershell
+copy src\.env.example .env
+```
+
+| Variável | Descrição |
+|----------|-----------|
+| `FIRMS_MAP_KEY` | Chave da API NASA FIRMS |
+| `OFFLINE_MODE` | `1` = usa dados seed (sem internet) |
+| `DB_PATH` | Caminho do SQLite (padrão `data/orbitfire.db`) |
+| `API_BASE_URL` | URL da API para o dashboard (padrão `http://127.0.0.1:8000`) |
+
+### Pipeline de treino (uma vez)
+
+Gera o modelo a partir do histórico jun–set/2024 (FIRMS SP + clima Archive):
+
+```powershell
+python -m src.application.build_grid
+python -m src.infrastructure.firms.ingest_historical
+python -m src.infrastructure.weather.ingest_historical
+python -m src.application.build_features
+python -m src.application.build_labels
+python -m src.application.build_dataset
+python -m src.infrastructure.ml.train
+python -m src.application.calibrate_thresholds
+```
+
+Saídas: `data/models/lgbm_orbitfire.pkl`, `thresholds.json`, `metrics.json`.
+
+### Operação diária (predição)
+
+Atualiza dados recentes (FIRMS NRT + clima Forecast) e grava scores no banco:
+
+```powershell
+python -m src.infrastructure.firms.ingest
+python -m src.infrastructure.weather.ingest
+python -m src.application.predict_risk
+```
+
+### API e dashboard
+
+Com scores no SQLite, suba a API e o painel em **dois terminais** (na raiz do projeto):
+
+```powershell
+# Terminal 1 — API (Swagger em http://127.0.0.1:8000/docs)
+uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+
+# Terminal 2 — Dashboard (http://localhost:8501)
+$env:PYTHONPATH = "."
 streamlit run src/dashboard/app.py
 ```
 
-O painel consome somente a API (`API_BASE_URL` no `.env`, padrão `http://127.0.0.1:8000`). Se a API estiver offline, o dashboard exibe erro com o comando para subir o servidor.
+Se a porta 8000 estiver ocupada, use outra (ex.: `8001`) e ajuste `API_BASE_URL` no `.env`.
 
-Incluir na entrega final:
+**Reinicie a API** após alterar código do backend — o dashboard depende dos endpoints atualizados (ex.: `/fires/summary`).
 
-- Pré-requisitos (Python 3.10+, venv, `.env`, chaves FIRMS/MAP_KEY)
-- Instalação (`requirements.txt`)
-- Comandos para ingestão, pipeline de modelagem, API e dashboard
-- Modo demo offline (`OFFLINE_MODE`)
+### Modo demo offline
+
+Para apresentação sem internet nem chave FIRMS:
+
+```powershell
+# No .env: OFFLINE_MODE=1
+python -m src.application.build_grid
+python -m src.infrastructure.firms.ingest
+python -m src.infrastructure.weather.ingest
+python -m src.application.predict_risk
+uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+```
+
+### Testes
+
+```powershell
+pytest test/ -v
+```
+
+### Limitações da POC
+
+- Cobertura restrita ao **Tocantins (TO)** (~2.285 células dentro do contorno estadual).
+- Modelo treinado com histórico **jun–set/2024**; operação usa fontes NRT/Forecast.
+- SQLite local — não há deploy em nuvem nesta entrega.
+- Classe de fogo amanhã é rara (~9% no teste); métricas devem ser lidas com contexto (ver matriz acima).
+- Dashboard exige API em execução; não consulta o banco diretamente.
 
 
 ## 📋 Licença

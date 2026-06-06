@@ -262,9 +262,9 @@ fiap-gs-2026.1-OrbitFire/
 | S4 Priorizacao | 2 | 2 | Concluida localmente |
 | S5 API | 2 | 2 | Concluida localmente |
 | S6 Dashboard | 2 | 2 | Concluida localmente |
-| S7 Entrega | 2 | 0 | Pendente |
+| S7 Entrega | 2 | 1 | Em andamento (E1 concluida) |
 
-**Etapa atual:** encerramento Sprint 6 — commit e push; em seguida Sprint 7 (README e entrega FIAP).
+**Etapa atual:** Sprint 7 — S7.E2 (revisao Godoy, PDF, video, links no README).
 
 ---
 
@@ -852,12 +852,15 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 
 ### S7.E1 — README publico
 
-**Entregaveis:** `README.md` com install, execucao, arquitetura, limitacoes (linguagem publica, sem jargao de sprint)
+**Resumo:**
+- README com arquitetura, instalacao, pipeline de treino e operacao, API, dashboard, modo offline, testes e limitacoes da POC.
+- Secao **Links e Observacoes** permanece pendente (repositorio, video, PDF).
 
-**Pendente no README (preencher na S7):**
+**Entregaveis:** `README.md` (install, execucao, arquitetura, limitacoes)
+
+**Pendente no README:**
 
 - Secao **Links e Observacoes** (repositorio, video, decisoes tecnicas)
-- Secao **Como executar o codigo** (pre-requisitos, instalacao, pipeline, modo offline)
 
 ### S7.E2 — Revisao Godoy
 
@@ -904,7 +907,8 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 - [x] Sprint 4 — priorizador de brigadas (local; commit pendente)
 - [x] Sprint 5 — API FastAPI (local; commit pendente)
 - [x] Sprint 6 — dashboard Streamlit (local; commit pendente)
-- [ ] Sprint 7 — README publico e revisao Godoy
+- [x] Sprint 7 — S7.E1 README execucao (local; commit pendente)
+- [ ] Sprint 7 — S7.E2 revisao Godoy, PDF e video
 - [ ] M12 ESP32 (fora do MVP)
 
 ---
