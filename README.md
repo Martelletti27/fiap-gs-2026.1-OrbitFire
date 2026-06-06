@@ -10,73 +10,84 @@
 
 <br>
 
-# Nome do projeto/atividade
+# OrbitFire
 
-## Nome do grupo
+## OrbitFire
 
-## 👨‍🎓 Integrantes: 
-- <a href="https://www.linkedin.com/in/sabrina-otoni-22525519b/">Nome do integrante 1</a>
-- <a href="https://www.linkedin.com/in/sabrina-otoni-22525519b/">Nome do integrante 2</a>
-- <a href="https://www.linkedin.com/in/sabrina-otoni-22525519b/">Nome do integrante 3</a> 
-- <a href="https://www.linkedin.com/in/sabrina-otoni-22525519b/">Nome do integrante 4</a> 
-- <a href="https://www.linkedin.com/in/sabrina-otoni-22525519b/">Nome do integrante 5</a>
+## 👥 Integrantes:
+- [Everton Marinho Souza](https://github.com/Emarinhos) — RM568137@fiap.com.br
+- [Julia Gutierres Fernandes Souza](https://github.com/Juliagutierres29) — RM568296@fiap.com.br
+- [Raimunda Nayara Mendes dos Santos](https://github.com/rm567718) — RM567718@fiap.com.br
+- [Felipe de Souza Lourenco](https://github.com/Xaramandas) — RM567521@fiap.com.br
+- [Matheus Ribeiro Martelletti](https://github.com/Martelletti27) — RM566767@fiap.com.br
 
 ## 👩‍🏫 Professores:
-### Tutor(a) 
-- <a href="https://www.linkedin.com/in/sabrina-otoni-22525519b/">Nome do Tutor</a>
+### Tutor(a)
+- [Sabrina Otoni](https://www.linkedin.com/in/sabrina-otoni-22525519b/)
 ### Coordenador(a)
-- <a href="https://www.linkedin.com/in/andregodoichiovato/">Nome do Coordenador</a>
+- [Andre Godoy, PhD](https://www.linkedin.com/company/inova-fusca)
 
 
 ## 📜 Descrição
 
-*Descreva seu projeto com base no texto da Global Solution (até 600 palavras)*
+O **OrbitFire** é uma POC da Global Solution FIAP 2026.1 que prevê **risco de incêndio para o dia seguinte** no **Tocantins (TO)**, cruzando detecções orbitais da NASA FIRMS com dados climáticos locais e apoiando a priorização de brigadas.
+
+Satélites mostram onde já há fogo; gestores de defesa civil e brigadas florestais precisam saber **onde agir amanhã**. O OrbitFire responde a essa pergunta com um pipeline de dados e um modelo de machine learning (LightGBM) que estima, para cada célula geográfica do estado, a probabilidade de incêndio no dia seguinte. Esse resultado é convertido em **score de risco de 0 a 100** com faixas operacionais (baixo, médio, alto e crítico) e alimenta um ranking de áreas prioritárias para alocação de recursos (módulo M10).
+
+A solução conecta a **economia espacial** a impacto positivo na Terra: dados de órbita (VIIRS e MODIS) deixam de ser apenas monitoramento reativo e passam a orientar **ação preventiva** antes do fogo se espalhar.
+
+**Dados e estratégia:** para treino, o sistema usa histórico FIRMS SP e Open-Meteo Archive (jun–set/2024); em operação, FIRMS NRT (5 dias) e previsão climática. A grade cobre aproximadamente 4.150 células de 0,1 grau sobre o TO.
+
+**Entregas previstas:** ingestão FIRMS e clima, grade em SQLite, engenharia de features e labels, modelo preditivo, risk score, priorizador de brigadas, API REST (FastAPI), dashboard Streamlit e modo demo offline com dados seed para apresentação sem internet.
 
 
 ## 📁 Estrutura de pastas
 
 Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
-- <b>docs</b>: Pasta destinada à documentação textual, incluindo brainstorm, atas e registros de reuniões, desenhos, prints, diagramas, storyboard, estratégia de IA e arquitetura e etc.
+- <b>assets</b>: Materiais do projeto (logo, escopo, implementação, edital FIAP).
 
-- <b>src</b>: Todo o código fonte desenvolvido, como scripts em Python, R, JS ou HTML, notebooks, códigos para ESP32/Arduino, APIs ou microsserviços, além de modelos, inferências e etc. Os tipos de arquivos e códigos são definidos no enunciado da atividade.
+- <b>src</b>: Código-fonte em camadas:
+  - <b>application</b> — casos de uso (grade, features, labels, dataset)
+  - <b>domain</b> — regras puras (células, features, labels, risk score)
+  - <b>infrastructure</b> — adaptadores (SQLite, FIRMS, clima, ML, seed)
+  - <b>config.py</b> — configuração central (bbox TO, paths, flags)
 
-- <b>data</b>: Contém os dados utilizados, como arquivos CSV, Excel, JSON, bases sintéticas e etc.
+- <b>data</b>: Dados do OrbitFire:
+  - <b>raw</b> — snapshots FIRMS (CSV) e clima (JSON)
+  - <b>processed</b> — parquets de features, labels e dataset
+  - <b>models</b> — modelo LightGBM, métricas, thresholds e gráficos
+  - <b>seed</b> — dados para modo demo offline
+  - <b>logs</b> — registros de execução local
 
-- <b>README.md</b>: Arquivo que serve como guia e explicação geral sobre o projeto (o mesmo que você está lendo agora).
+- <b>test</b>: Testes automatizados com pytest (`test/unit/`).
 
-
-‼️ OBSERVAÇÃO DO TUTOR, favor desconsiderar do seu arquivo final: não há obrigação de usar todas as pastas, use apenas o que fizer SENTIDO para a entrega. ‼️
+- <b>README.md</b>: Guia geral do projeto (este arquivo).
 
 
 ## 📎 Links e Observações
 
-- <b>Listagem de Links</b>: Links do projeto (ex. vídeos da entrega, páginas, etc.), 
+> **Pendente para entrega (S7):** preencher esta seção antes do envio na plataforma.
 
-- <b>Explicação de decisões técnicas</b>: Observações do projeto,
-
-- <b>Observações Gerais</b>: Caso o projeto seja relacionado à alguma competição, deixar registrado no README se aceita ou não participar.
+- <b>Repositório do projeto</b>: _(link do GitHub — inserir na entrega)_
+- <b>Vídeo no YouTube (até 5 min, não listado)</b>: _(inserir link)_
+  - Explicação clara da integração entre disciplinas
+  - Demonstração prática do funcionamento da solução
+  - Postagem como **não listado**, com link anexado ao final do PDF
+- <b>Decisões técnicas</b>: _(resumo das escolhas do grupo — inserir na entrega)_
+- <b>Observações gerais</b>: _(competições ou demais observações, se houver)_
 
 
 ## 🔧 Como executar o código
 
-*Acrescentar as informações necessárias sobre pré-requisitos (IDEs, serviços, bibliotecas etc.) e instalação básica do projeto, descrevendo eventuais versões utilizadas. Colocar um passo a passo de como o leitor pode baixar o seu código e executá-lo a partir de sua máquina ou seu repositório.*
+> **Pendente para entrega (S7):** documentar passo a passo antes do envio na plataforma.
 
+Incluir:
 
-## 🗃 Histórico de lançamentos
-
-* 0.5.0 - XX/XX/2024
-    * 
-* 0.4.0 - XX/XX/2024
-    * 
-* 0.3.0 - XX/XX/2024
-    * 
-* 0.2.0 - XX/XX/2024
-    * 
-* 0.1.0 - XX/XX/2024
-    *
-
----
+- Pré-requisitos (Python 3.10+, venv, `.env`, chaves FIRMS/MAP_KEY)
+- Instalação (`requirements.txt`)
+- Comandos para ingestão, pipeline de modelagem, API e dashboard
+- Modo demo offline (`OFFLINE_MODE`)
 
 
 ## 📋 Licença
