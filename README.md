@@ -57,13 +57,11 @@ O modelo evoluiu em quatro etapas incrementais (features climáticas, focos em v
 
 O ganho operacional mais relevante foi a **queda de falsos alarmes** (menos de um terço do volume anterior), mantendo recall útil para priorização. A acurácia isolada não é a métrica principal: o teste tem ~9% de positivos e um modelo que sempre prevê “sem fogo” já alcançaria ~90% de acurácia.
 
-<p align="center">
-  <img src="assets/confusion_matrix.png"
-       alt="Matriz de confusão do modelo OrbitFire no conjunto de teste (set/2024)"
-       width="85%">
-</p>
+#### Matriz de confusão (teste set/2024)
 
-*Matriz de confusão no teste (103.750 amostras): threshold 0,80, AUC 0,868, F1 0,58. KPIs à esquerda; células TN 90.712 · FP 3.658 · FN 4.006 · TP 5.374.*
+![Matriz de confusão do modelo OrbitFire no conjunto de teste set/2024 — threshold 0,80, AUC 0,868, F1 0,58](assets/confusion_matrix.png)
+
+*103.750 amostras: TN 90.712 · FP 3.658 · FN 4.006 · TP 5.374. KPIs à esquerda do gráfico.*
 
 **Entregas previstas:** ingestão FIRMS e clima, grade em SQLite, engenharia de features e labels, modelo preditivo, risk score, priorizador de brigadas, API REST (FastAPI), dashboard Streamlit e modo demo offline com dados seed para apresentação sem internet.
 
