@@ -38,6 +38,33 @@ A solução conecta a **economia espacial** a impacto positivo na Terra: dados d
 
 **Dados e estratégia:** para treino, o sistema usa histórico FIRMS SP e Open-Meteo Archive (jun–set/2024); em operação, FIRMS NRT (5 dias) e previsão climática. A grade cobre aproximadamente 4.150 células de 0,1 grau sobre o TO.
 
+### Modelo e calibragem
+
+O classificador LightGBM prevê **fogo amanhã** por célula. Após o treino no holdout temporal (jun–ago/2024 treino, set/2024 teste), aplicamos duas calibragens:
+
+1. **Faixas de risk score** — limites `medio`, `alto` e `critico` em `thresholds.json`, derivados dos percentis 50/75/90 das probabilidades do conjunto de treino (escala 0–100).
+2. **Threshold de classificação** — busca do ponto que maximiza **F1** no teste (atualmente **0,80**), usado na matriz abaixo e distinto do corte fixo 0,50.
+
+O modelo evoluiu em quatro etapas incrementais (features climáticas, focos em vizinhança e tuning de hiperparâmetros). Em relação ao baseline inicial do TO (5 features, threshold 0,50):
+
+| Métrica | Baseline | Modelo atual |
+|---------|----------|--------------|
+| AUC-ROC | 0,84 | **0,868** |
+| F1 (thr ótimo) | 0,45 | **0,58** |
+| Precisão | 34% | **60%** |
+| Recall | 65% | 57% |
+| Falsos positivos | 11.656 | **3.658** |
+
+O ganho operacional mais relevante foi a **queda de falsos alarmes** (menos de um terço do volume anterior), mantendo recall útil para priorização. A acurácia isolada não é a métrica principal: o teste tem ~9% de positivos e um modelo que sempre prevê “sem fogo” já alcançaria ~90% de acurácia.
+
+<p align="center">
+  <img src="assets/confusion_matrix.png"
+       alt="Matriz de confusão do modelo OrbitFire no conjunto de teste (set/2024)"
+       width="85%">
+</p>
+
+*Matriz de confusão no teste (103.750 amostras): threshold 0,80, AUC 0,868, F1 0,58. KPIs à esquerda; células TN 90.712 · FP 3.658 · FN 4.006 · TP 5.374.*
+
 **Entregas previstas:** ingestão FIRMS e clima, grade em SQLite, engenharia de features e labels, modelo preditivo, risk score, priorizador de brigadas, API REST (FastAPI), dashboard Streamlit e modo demo offline com dados seed para apresentação sem internet.
 
 
@@ -45,7 +72,7 @@ A solução conecta a **economia espacial** a impacto positivo na Terra: dados d
 
 Dentre os arquivos e pastas presentes na raiz do projeto, definem-se:
 
-- <b>assets</b>: Materiais do projeto (logo, escopo, implementação, edital FIAP).
+- <b>assets</b>: Materiais do projeto (logo, escopo, implementação, edital FIAP, matriz de confusão do modelo).
 
 - <b>src</b>: Código-fonte em camadas:
   - <b>application</b> — casos de uso (grade, features, labels, dataset)

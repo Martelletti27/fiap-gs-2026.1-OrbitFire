@@ -8,6 +8,7 @@ from src.config import (
     DEFAULT_BBOX,
     FIRMS_NASA_MAP,
     FIRMS_SOURCES,
+    FIRMS_SOURCES_SP,
     GRID_DEG,
     REGION,
     UFS,
@@ -16,28 +17,30 @@ from src.config import (
 )
 
 
-def test_region_and_bbox_centro_oeste() -> None:
-    """Regiao e bbox devem refletir o Centro-Oeste do Escopo."""
-    assert REGION == "Centro-Oeste"
-    assert DEFAULT_BBOX.lat_min == pytest.approx(-24.1)
-    assert DEFAULT_BBOX.lat_max == pytest.approx(-12.0)
-    assert DEFAULT_BBOX.lon_min == pytest.approx(-61.6)
-    assert DEFAULT_BBOX.lon_max == pytest.approx(-45.0)
-    assert DEFAULT_BBOX.as_firms_area() == "-61.6,-24.1,-45.0,-12.0"
-    assert DEFAULT_BBOX.contains(-16.0, -47.0) is True
+def test_region_and_bbox_tocantins() -> None:
+    """Regiao e bbox devem refletir o Tocantins do Escopo."""
+    assert REGION == "Tocantins"
+    assert DEFAULT_BBOX.lat_min == pytest.approx(-13.5)
+    assert DEFAULT_BBOX.lat_max == pytest.approx(-5.2)
+    assert DEFAULT_BBOX.lon_min == pytest.approx(-50.7)
+    assert DEFAULT_BBOX.lon_max == pytest.approx(-45.7)
+    assert DEFAULT_BBOX.as_firms_area() == "-50.7,-13.5,-45.7,-5.2"
+    assert DEFAULT_BBOX.contains(-10.0, -48.0) is True
     assert DEFAULT_BBOX.contains(-30.0, -47.0) is False
 
 
 def test_grid_deg_and_ufs() -> None:
     """Grade e UFs confirmadas pelo usuario."""
     assert GRID_DEG == 0.10
-    assert UFS == ("GO", "MT", "MS", "DF")
+    assert UFS == ("TO",)
 
 
 def test_firms_sources_viirs_and_modis() -> None:
-    """Ingestao FIRMS deve cobrir VIIRS NRT e MODIS."""
+    """Ingestao FIRMS deve cobrir VIIRS/MODIS NRT e SP para treino."""
     assert FIRMS_SOURCES == ("VIIRS_NRT", "MODIS_NRT")
-    assert set(FIRMS_NASA_MAP) == set(FIRMS_SOURCES)
+    assert FIRMS_SOURCES_SP == ("VIIRS_SP", "MODIS_SP")
+    assert all(src in FIRMS_NASA_MAP for src in FIRMS_SOURCES)
+    assert all(src in FIRMS_NASA_MAP for src in FIRMS_SOURCES_SP)
 
 
 def test_project_root_contains_src() -> None:

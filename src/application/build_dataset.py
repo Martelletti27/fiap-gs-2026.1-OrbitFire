@@ -46,19 +46,34 @@ def build_dataset(settings: Settings | None = None) -> DatasetBuildReport:
     _require_parquet(features_path, "build_features")
     _require_parquet(labels_path, "build_labels")
 
+    print("Carregando features...", flush=True)
     features_df = pd.read_parquet(features_path)
+    print(f"Features: {len(features_df)} linhas", flush=True)
+    print("Carregando labels...", flush=True)
     labels_df = pd.read_parquet(labels_path)
+    print(f"Labels: {len(labels_df)} linhas", flush=True)
+    print("Unindo features + labels...", flush=True)
     merged = _merge_features_labels(features_df, labels_df)
+    print(f"Dataset unificado: {len(merged)} linhas", flush=True)
 
     if merged.empty:
         raise ValueError("Dataset vazio apos join de features e labels")
 
+    print("Aplicando split temporal...", flush=True)
     days = [_parse_day(value) for value in merged["day"].unique()]
     temporal = temporal_train_test_split(days, DEFAULT_TRAIN_RATIO)
     merged["split"] = merged["day"].map(
         lambda value: split_name_for_day(_parse_day(value), temporal)
     )
+    train_rows_preview = int((merged["split"] == "train").sum())
+    test_rows_preview = int((merged["split"] == "test").sum())
+    print(
+        f"Split: train={train_rows_preview} test={test_rows_preview} "
+        f"({len(temporal.train_days)} dias treino / {len(temporal.test_days)} teste)",
+        flush=True,
+    )
 
+    print("Exportando parquet...", flush=True)
     parquet_path = _export_dataset(cfg.processed_dir, merged)
     split_meta_path = _export_split_meta(cfg.processed_dir, temporal)
 

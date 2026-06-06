@@ -40,9 +40,17 @@ def load_cell_day_context(
     step: str,
 ) -> CellDayBuildContext:
     """Carrega grade, focos e dias de referencia para pipeline S2."""
+    print("Carregando grade...", flush=True)
     grid_cells = require_non_empty_grid(repository, step)
+    print(f"Grade: {len(grid_cells)} celulas", flush=True)
+    print("Carregando focos FIRMS...", flush=True)
     fires = load_fire_points(repository, cfg.bbox, cfg.grid_deg)
+    print(f"Focos: {len(fires)} pontos", flush=True)
+    if include_weather:
+        print("Carregando clima...", flush=True)
     weather = load_weather_points(repository) if include_weather else []
+    if include_weather:
+        print(f"Clima: {len(weather)} registros", flush=True)
     days = collect_reference_days(fires, weather)
     if not days:
         if include_weather:
@@ -81,6 +89,7 @@ def load_weather_points(repository: OrbitFireRepository) -> list[WeatherPoint]:
             day=row.day,
             temp_max=row.temp_max,
             precip_mm=row.precip_mm,
+            wind_speed=row.wind_speed,
         )
         for row in repository.list_weather_daily()
     ]

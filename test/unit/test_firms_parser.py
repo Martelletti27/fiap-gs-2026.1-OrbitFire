@@ -8,8 +8,8 @@ from src.config import DEFAULT_BBOX
 from src.infrastructure.firms.parser import parse_firms_csv
 
 SAMPLE_CSV = """latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_t31,frp,daynight
--16.05,-47.92,320.5,0.5,0.5,2026-06-01,1430,N,VIIRS,85,nrt,285.2,18.4,D
--12.54,-55.12,310.0,0.5,0.5,2026-06-02,304,N,VIIRS,h,nrt,280.0,31.5,N
+-10.05,-47.92,320.5,0.5,0.5,2026-06-01,1430,N,VIIRS,85,nrt,285.2,18.4,D
+-8.20,-48.30,310.0,0.5,0.5,2026-06-02,304,N,VIIRS,h,nrt,280.0,31.5,N
 -30.00,-50.00,290.0,0.5,0.5,2026-06-01,1200,N,VIIRS,n,nrt,270.0,5.0,D
 """
 
@@ -21,14 +21,14 @@ def test_parse_firms_csv_maps_fields() -> None:
     first = events[0]
     assert first.source == "VIIRS_NRT"
     assert first.acq_datetime == datetime(2026, 6, 1, 14, 30)
-    assert first.lat == pytest.approx(-16.05)
+    assert first.lat == pytest.approx(-10.05)
     assert first.lon == pytest.approx(-47.92)
     assert first.confidence == pytest.approx(85.0)
     assert first.frp == pytest.approx(18.4)
 
 
 def test_parse_firms_csv_filters_bbox() -> None:
-    """Pontos fora do Centro-Oeste devem ser descartados."""
+    """Pontos fora do Tocantins devem ser descartados."""
     events = parse_firms_csv(SAMPLE_CSV, source="VIIRS_NRT", bbox=DEFAULT_BBOX)
     lats = {event.lat for event in events}
     assert -30.0 not in lats

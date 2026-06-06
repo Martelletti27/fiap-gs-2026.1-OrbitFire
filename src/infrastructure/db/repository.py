@@ -143,6 +143,42 @@ class OrbitFireRepository:
         )
         return self._persist(row)
 
+    def upsert_risk_score(
+        self,
+        cell_id: str,
+        reference_date: date,
+        score: float,
+        band: str,
+        probability: float | None = None,
+    ) -> None:
+        """Substitui ou insere score para celula e data (inferencia batch)."""
+        stmt = select(RiskScore).where(
+            RiskScore.cell_id == cell_id,
+            RiskScore.reference_date == reference_date,
+        )
+        row = self._session.scalar(stmt)
+        if row is None:
+            row = RiskScore(
+                cell_id=cell_id,
+                reference_date=reference_date,
+                score=score,
+                band=band,
+                probability=probability,
+            )
+            self._session.add(row)
+        else:
+            row.score = score
+            row.band = band
+            row.probability = probability
+        self._session.commit()
+
+    def list_risk_scores(self, reference_date: date | None = None) -> list[RiskScore]:
+        """Lista scores persistidos, opcionalmente filtrados por data."""
+        stmt = select(RiskScore)
+        if reference_date is not None:
+            stmt = stmt.where(RiskScore.reference_date == reference_date)
+        return list(self._session.scalars(stmt).all())
+
     def list_grid_cells(self) -> list[GridCell]:
         """Retorna todas as celulas da grade persistidas."""
         stmt = select(GridCell)
@@ -169,6 +205,24 @@ class OrbitFireRepository:
     def count_weather_daily(self) -> int:
         """Total de registros climaticos."""
         return self._count(WeatherDaily)
+
+    def count_weather_days_for_cell_in_range(
+        self,
+        cell_id: str,
+        start: date,
+        end: date,
+    ) -> int:
+        """Conta dias climaticos distintos da celula no intervalo fechado."""
+        stmt = (
+            select(func.count())
+            .select_from(WeatherDaily)
+            .where(
+                WeatherDaily.cell_id == cell_id,
+                WeatherDaily.day >= start,
+                WeatherDaily.day <= end,
+            )
+        )
+        return int(self._session.scalar(stmt) or 0)
 
     def count_risk_scores(self) -> int:
         """Total de scores de risco."""

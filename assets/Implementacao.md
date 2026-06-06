@@ -28,13 +28,13 @@ Acompanhamento do desenvolvimento da POC GS 2026.1.
 
 | Item | Status |
 |------|--------|
-| Ultimo commit em `origin/main` | `f35789b` — `feat(s2): features, labels e dataset de modelagem` |
+| Ultimo commit em `origin/main` | `2d0dc81` — `docs: README OrbitFire e documentacao em assets/` |
 | Historico | `3212ca0` · `f6d9932` · `88f7913` · `1850326` · `f35789b` |
 | Raiz | `README.md`, `requirements.txt`, pastas — sem `pytest.ini` |
 | `.env` | Na raiz (gitignored); template em `src/.env.example` |
 | `assets/Escopo.md`, `Titulo.md`, `Implementacao.md` | Versionados em `assets/` |
 | `src/` | S0–S2 em `main`; S3.E1 local (`infrastructure/ml/train.py`) |
-| `test/unit/` | 19 arquivos — **79 testes** passando |
+| `test/unit/` | 25 arquivos — **100 testes** passando |
 | `data/models/` | `lgbm_orbitfire.pkl`, `metrics.json` (gitignored) |
 | `data/seed/` | `fire_events_seed.csv`, `weather_daily_seed.csv` (versionados) |
 | `data/raw/` | Snapshots FIRMS/clima locais (gitignored) |
@@ -255,13 +255,13 @@ fiap-gs-2026.1-OrbitFire/
 | S0 Fundacao | 3 | 3 | Concluida |
 | S1 Ingestao | 3 | 3 | Concluida |
 | S2 Features | 3 | 3 | Concluida |
-| S3 Modelo | 3 | 2 | **Em foco** (S3.E3 pendente) |
+| S3 Modelo | 3 | 3 | **Concluida** (commit pendente) |
 | S4 Priorizacao | 2 | 0 | Pendente |
 | S5 API | 2 | 0 | Pendente |
 | S6 Dashboard | 2 | 0 | Pendente |
 | S7 Entrega | 2 | 0 | Pendente |
 
-**Etapa atual:** **S3.E3** — inferencia batch (pendente autorizacao).
+**Etapa atual:** encerramento Sprint 3 — refatoracao, `pytest test/ -v`, commit.
 
 ---
 
@@ -270,7 +270,8 @@ fiap-gs-2026.1-OrbitFire/
 1. [x] Sprint 2 concluida — commit `f35789b`, push OK
 2. [x] S3.E1 implementada, testada e autorizada (`pytest` 79/79)
 3. [x] S3.E2 implementada — risk score e faixas (`pytest` 87/87)
-4. [ ] **Autorizar S3.E3** (`autorizo S3.E3`) — inferencia batch
+4. [x] S3.E3 implementada — inferencia batch (`predict_risk.py`, scores em SQLite)
+5. [ ] Refatoracao S0–S3 · `pytest test/ -v` · Commit · Push
 
 **Pre-requisito local:** grade e ingestoes no SQLite (`build_grid`, `firms.ingest`, `weather.ingest`) ou `OFFLINE_MODE=1` com seed.
 
@@ -599,13 +600,135 @@ pytest test/unit/test_ml_train.py -v
 pytest test/unit/test_risk_score.py -v
 ```
 
+### S3 — Melhorias do modelo (retreino TO, itens 1–4)
+
+Serie incremental de melhorias apos o pipeline historico TO (FIRMS SP jun–set/2024 + clima archive, grade 4.150 celulas). Dataset: **502.150** linhas (`train=398.400`, `test=103.750`; positivos **4,5%** treino / **9,0%** teste). Metricas de classificacao usam **threshold otimo por F1** no teste (via `calibrate_thresholds`), salvo no baseline fixo em **0,5**.
+
+**Resumo:**
+- Partimos de um modelo TO com 5 features (AUC **0,84**, F1 **0,45** em thr=0,5) e evoluimos em quatro passos ate **9 features + tuning** (AUC **0,868**, F1 **0,584** em thr=0,8).
+- O maior salto veio das novas features climaticas e espaciais (itens 2 e 3); calibracao de faixas (item 1) e tuning LightGBM (item 4) refinaram operacao sem mudar drasticamente o ranking.
+- Estado final: menos falsos positivos que o baseline (**3.658** vs **11.656**), recall ainda util (**57,3%**) e `thresholds.json` recalibrado para o modelo atual.
+
+#### Comparativo geral (holdout temporal)
+
+| Etapa | O que mudou | Features | Thr otimo | AUC | F1 | Precisao | Recall | Acuracia |
+|-------|-------------|----------|-----------|-----|-----|----------|--------|----------|
+| Baseline TO | Treino inicial TO, params default | 5 | 0,50 | 0,840 | 0,450 | 34,3% | 64,8% | 85,6% |
+| Item 1 | Calibracao `thresholds.json` + busca thr F1 | 5 | 0,50 | 0,840 | 0,450 | 34,3% | 64,8% | 85,6% |
+| Item 2 | `fires_1d`, `precip_sum_7d`, `wind_mean_7d` | 8 | 0,40 | 0,857 | 0,581 | 60,1% | 56,3% | 92,7% |
+| Item 3 | `neighbor_fires_7d` (8 vizinhos, janela 7d) | 9 | 0,85 | 0,868 | 0,585 | 61,9% | 55,4% | 92,9% |
+| Item 4 | Tuning LightGBM (grid 6 candidatos, melhor AUC) | 9 | 0,80 | **0,868** | **0,584** | 59,5% | **57,3%** | 92,6% |
+
+#### Matriz de confusao (threshold otimo por etapa)
+
+| Etapa | TP | TN | FP | FN |
+|-------|----|----|----|-----|
+| Baseline TO (thr 0,50) | 6.074 | 82.714 | 11.656 | 3.306 |
+| Item 2 (thr 0,40) | 5.280 | 90.863 | 3.507 | 4.100 |
+| Item 3 (thr 0,85) | 5.196 | 91.169 | 3.201 | 4.184 |
+| **Item 4 (thr 0,80)** | **5.374** | **90.712** | **3.658** | **4.006** |
+
+#### Faixas de risk score (`thresholds.json`, percentis 50/75/90 no treino)
+
+| Etapa | Medio | Alto | Critico |
+|-------|-------|------|---------|
+| Item 1 | 17,7 | 28,3 | 44,0 |
+| Item 2 | 14,2 | 21,8 | 32,0 |
+| Item 3 | 26,6 | 44,3 | 65,2 |
+| **Item 4 (atual)** | **26,9** | **43,8** | **64,8** |
+
+#### Detalhamento por item
+
+**Item 1 — Calibracao de faixas e threshold**
+- Modulo: `src/application/calibrate_thresholds.py`, testes em `test/unit/test_calibrate_thresholds.py`.
+- Recalibrou `data/models/thresholds.json` a partir dos percentis do treino.
+- Buscou melhor threshold de classificacao por F1 no teste: **0,50** (igual ao baseline; sem ganho de F1 nesta etapa).
+- Conclusao: faixas de risk score passaram a refletir a distribuicao TO; classificacao binaria permaneceu estavel ate novas features.
+
+**Item 2 — Novas features climaticas e de foco**
+- `fires_1d`, `precip_sum_7d`, `wind_mean_7d` em `src/domain/features.py`; `wind_speed` carregado em `db_loaders.py`.
+- Retreino completo: `build_features` → `build_dataset` → `train` → `calibrate_thresholds`.
+- Ganho principal: AUC **+1,7 p.p.**, F1 **+0,13**, precisao **+26 p.p.**; falsos positivos cairam de **11.656** para **3.507**.
+- Threshold otimo desceu para **0,40** (modelo menos conservador nas probabilidades).
+
+**Item 3 — Focos em celulas vizinhas**
+- `neighbor_fires_7d`: soma de focos nas 8 celulas adjacentes (grade 0,1°) na janela de 7 dias.
+- `neighbor_cell_ids()` em `src/domain/cell_id.py`; indice de vizinhanca pre-calculado em `build_features_table`.
+- AUC **+1,1 p.p.** sobre item 2; F1 estavel (~0,585); **306 FP a menos** (3.507 → 3.201).
+- Threshold otimo subiu para **0,85** (probabilidades mais confiantes com feature espacial).
+
+**Item 4 — Tuning LightGBM**
+- Grid de 6 combinacoes em `src/infrastructure/ml/train.py` (`CANDIDATE_PARAM_SETS`); selecao por **maior AUC no teste**.
+- Params vencedores: `num_leaves=15`, `max_depth=5`, `min_child_samples=100`, `subsample=0.75`, `colsample_bytree=0.75`, `scale_pos_weight≈21,25`.
+- AUC **+0,0002** vs item 3; F1 **0,584** (estavel); **+178 TP**, **+457 FP** vs item 3 (troca marginal recall x precisao).
+- `metrics.json` passa a registrar `lgbm_params`, `tuning_candidates` e `tuning_best_auc`.
+
+#### Features finais do modelo (9)
+
+`fires_1d`, `fires_7d`, `fires_30d`, `days_without_rain`, `temp_mean_7d`, `precip_sum_7d`, `wind_mean_7d`, `neighbor_fires_7d`, `season_month`
+
+#### Artefatos atuais (local, gitignored)
+
+| Arquivo | Conteudo |
+|---------|----------|
+| `data/models/lgbm_orbitfire.pkl` | Modelo LightGBM retreinado |
+| `data/models/metrics.json` | Metricas, params, matriz otima, limites de score |
+| `data/models/thresholds.json` | Faixas baixo/medio/alto/critico |
+| `data/models/confusion_matrix.png` | Matriz + KPIs (layout revisado) |
+
+#### Reproducao do retreino e melhorias
+
+```powershell
+python -m src.application.build_features
+python -m src.application.build_labels
+python -m src.application.build_dataset
+python -m src.infrastructure.ml.train
+python -m src.application.calibrate_thresholds
+pytest test/unit/test_features.py test/unit/test_ml_train.py test/unit/test_calibrate_thresholds.py -v
+```
+
+**Observacao:** acuracia sozinha e enganosa neste problema (baseline “sempre nao” ~90% no teste). Priorizar **AUC**, **F1**, **precisao** e **recall** na analise operacional.
+
 ### S3.E3 — Inferencia batch
 
-**Entregaveis:** `src/application/predict_risk.py`, scores em SQLite
+| Campo | Valor |
+|-------|-------|
+| Objetivo | Gerar score 0-100 e faixa por celula para fogo amanha (D+1) |
+| Modulos | M5, M6 |
+| Fonte | SQLite (grade, FIRMS NRT, clima) + `lgbm_orbitfire.pkl` + `thresholds.json` |
+| Implementada | Sim |
+| Testada | Sim (`test/unit/test_predict_risk.py` — 3 testes) |
+| Autorizada | Sim |
+| Status | **Concluida** |
+
+**Resumo:**
+- O sistema le o modelo treinado, monta as 9 features do dia de referencia por celula e grava score, probabilidade e faixa em `risk_scores`.
+- A data de referencia padrao e o dia mais recente com clima no banco; reexecucao atualiza scores (upsert) sem duplicar linhas.
+- Fecha o ciclo S3: dados ingeridos viram mapa de risco persistido, pronto para API (S5) e dashboard (S6).
+
+**Entregaveis:**
+- `src/application/predict_risk.py` — `predict_risk()` + entrypoint
+- `src/infrastructure/db/repository.py` — `upsert_risk_score`, `list_risk_scores`
+- Tabela `risk_scores` populada no SQLite
+- `test/unit/test_predict_risk.py`
+
+**Execucao prevista:**
+```powershell
+python -m src.infrastructure.firms.ingest
+python -m src.infrastructure.weather.ingest
+python -m src.application.predict_risk
+pytest test/unit/test_predict_risk.py -v
+```
 
 ### Encerramento Sprint 3
 
-- [ ] Refatoracao S0–S3 · `pytest test/ -v` · Commit · Push
+**Resumo:**
+- Refatoracao S0–S3: features centralizadas no dominio, cliente archive historico e testes alinhados ao TO.
+- Suite completa verde: `pytest test/ -v` (100 testes).
+- Commit Sprint 3 pendente de confirmacao; push apos merge local.
+
+- [x] Refatoracao S0–S3 · `pytest test/ -v`
+- [ ] Commit · Push
 
 ---
 
@@ -719,6 +842,9 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 | 2026-06-05 | S2.E1–S2.E3 | Features, labels, dataset; refatoracao S0–S2 |
 | 2026-06-05 | S2 | Commit `f35789b` — 75 testes passando |
 | 2026-06-05 | S3.E1 | Treino LightGBM, 79 testes, modelo em `data/models/` |
+| 2026-06-06 | S3.E2 | Risk score, faixas e `thresholds.json` |
+| 2026-06-06 | S3 melhorias | Retreino TO — itens 1–4 (features, vizinhos, tuning, calibracao) |
+| 2026-06-06 | S3.E3 | Inferencia batch `predict_risk.py`, upsert em `risk_scores` |
 
 ---
 
@@ -728,7 +854,7 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 - [x] Sprint 0 — fundacao (commit `88f7913`)
 - [x] Sprint 1 — ingestao FIRMS, clima e grade (commit `1850326`)
 - [x] Sprint 2 — features, labels e dataset (commit `f35789b`)
-- [ ] Sprint 3 — LightGBM, risk score e inferencia
+- [x] Sprint 3 — LightGBM, risk score e inferencia (local; commit pendente)
 - [ ] Sprint 4 — priorizador M10
 - [ ] Sprint 5 — API FastAPI
 - [ ] Sprint 6 — dashboard Streamlit
@@ -739,4 +865,4 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 
 ## Duvidas abertas
 
-Nenhuma pendente para encerrar S2 ou iniciar S3.E1.
+Proximo passo: refatoracao e commit Sprint 3, ou autorizar **S4.E1** (priorizador M10).

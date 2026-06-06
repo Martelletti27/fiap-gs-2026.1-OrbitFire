@@ -35,10 +35,16 @@ def build_labels(settings: Settings | None = None) -> LabelsBuildReport:
         context = load_cell_day_context(
             repository,
             cfg,
-            include_weather=False,
+            include_weather=True,
             step="labels",
         )
+        print(
+            f"Calculando labels: {len(context.cell_ids)} celulas x "
+            f"{len(context.days)} dias...",
+            flush=True,
+        )
         rows = build_labels_table(context.cell_ids, context.days, context.fires)
+        print("Exportando parquet...", flush=True)
         parquet_path = _export_parquet(cfg.processed_dir, rows)
         positives = sum(row.fire_tomorrow for row in rows)
         logger.info(

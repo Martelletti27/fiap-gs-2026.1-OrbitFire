@@ -8,8 +8,9 @@ from typing import Iterator
 
 from src.config import BBox, DEFAULT_BBOX, UFS
 
-# Bboxes aproximados por UF para atribuicao na grade (ordem: DF primeiro)
+# Bboxes aproximados por UF para atribuicao na grade
 UF_BOXES: tuple[tuple[str, BBox], ...] = (
+    ("TO", BBox(lat_min=-13.50, lat_max=-5.20, lon_min=-50.70, lon_max=-45.70)),
     ("DF", BBox(lat_min=-16.10, lat_max=-15.45, lon_min=-48.35, lon_max=-47.30)),
     ("GO", BBox(lat_min=-19.90, lat_max=-12.00, lon_min=-53.40, lon_max=-45.80)),
     ("MS", BBox(lat_min=-24.10, lat_max=-17.00, lon_min=-58.50, lon_max=-50.00)),
@@ -92,11 +93,49 @@ def parse_cell_center(cell_id: str) -> tuple[float, float]:
     return float(parts[-2]), float(parts[-1])
 
 
+def cell_id_uf(cell_id: str) -> str | None:
+    """Retorna prefixo UF quando cell_id segue UF_lat_lon."""
+    parts = cell_id.split("_")
+    if len(parts) == 3 and parts[0] in UFS:
+        return parts[0]
+    return None
+
+
+def neighbor_cell_ids(
+    cell_id: str,
+    grid_deg: float,
+    known_cells: frozenset[str] | set[str] | None = None,
+) -> tuple[str, ...]:
+    """Lista cell_ids das oito celulas adjacentes na grade."""
+    lat, lon = parse_cell_center(cell_id)
+    uf = cell_id_uf(cell_id)
+    offsets = (
+        (grid_deg, 0.0),
+        (-grid_deg, 0.0),
+        (0.0, grid_deg),
+        (0.0, -grid_deg),
+        (grid_deg, grid_deg),
+        (grid_deg, -grid_deg),
+        (-grid_deg, grid_deg),
+        (-grid_deg, -grid_deg),
+    )
+    neighbors: list[str] = []
+    for delta_lat, delta_lon in offsets:
+        neighbor_id = format_cell_id(
+            round(lat + delta_lat, 4),
+            round(lon + delta_lon, 4),
+            uf,
+        )
+        if known_cells is None or neighbor_id in known_cells:
+            neighbors.append(neighbor_id)
+    return tuple(neighbors)
+
+
 def build_grid_cells(
     bbox: BBox = DEFAULT_BBOX,
     grid_deg: float = 0.10,
 ) -> list[GridCellSpec]:
-    """Constroi todas as celulas do Centro-Oeste para a grade configurada."""
+    """Constroi todas as celulas da regiao configurada para a grade."""
     cells: list[GridCellSpec] = []
     for lat, lon in iter_grid_centers(bbox, grid_deg):
         uf = assign_uf(lat, lon)

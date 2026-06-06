@@ -73,10 +73,14 @@ def test_build_features_exports_parquet(features_settings) -> None:
     assert set(df.columns) == {
         "cell_id",
         "day",
+        "fires_1d",
         "fires_7d",
         "fires_30d",
         "days_without_rain",
         "temp_mean_7d",
+        "precip_sum_7d",
+        "wind_mean_7d",
+        "neighbor_fires_7d",
         "season_month",
     }
 

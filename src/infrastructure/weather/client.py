@@ -1,9 +1,10 @@
-"""Cliente HTTP do Open-Meteo (forecast com past_days)."""
+"""Cliente HTTP do Open-Meteo (forecast e archive historico)."""
 
 from __future__ import annotations
 
 import logging
 import time
+from datetime import date
 from typing import Any
 
 import requests
@@ -31,12 +32,14 @@ class OpenMeteoClient:
         timeout: float = 30.0,
         max_retries: int = 3,
         retry_delay: float = 1.0,
+        rate_limit_base_delay: float = 0.0,
     ) -> None:
         self._base_url = base_url
         self._timezone = timezone
         self._timeout = timeout
         self._max_retries = max_retries
         self._retry_delay = retry_delay
+        self._rate_limit_base_delay = rate_limit_base_delay
 
     def fetch_daily(
         self,
@@ -58,8 +61,27 @@ class OpenMeteoClient:
         }
         return self._get_with_retry(params)
 
+    def fetch_historical_daily(
+        self,
+        lat: float,
+        lon: float,
+        *,
+        start_date: date,
+        end_date: date,
+    ) -> dict[str, Any]:
+        """Retorna JSON do archive para intervalo de datas fechado."""
+        params = {
+            "latitude": lat,
+            "longitude": lon,
+            "daily": ",".join(DAILY_VARIABLES),
+            "timezone": self._timezone,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }
+        return self._get_with_retry(params)
+
     def _get_with_retry(self, params: dict[str, Any]) -> dict[str, Any]:
-        """GET com retry simples em falhas de rede ou HTTP 5xx."""
+        """GET com retry em falhas de rede, HTTP 5xx e rate limit 429."""
         last_error: Exception | None = None
 
         for attempt in range(1, self._max_retries + 1):
@@ -69,6 +91,16 @@ class OpenMeteoClient:
                     params=params,
                     timeout=self._timeout,
                 )
+                if response.status_code == 429 and attempt < self._max_retries:
+                    delay = self._rate_limit_base_delay or self._retry_delay * attempt
+                    logger.warning(
+                        "Open-Meteo rate limit (tentativa %s/%s), aguardando %.0fs",
+                        attempt,
+                        self._max_retries,
+                        delay,
+                    )
+                    time.sleep(delay)
+                    continue
                 response.raise_for_status()
                 return response.json()
             except (requests.RequestException, ValueError) as exc:

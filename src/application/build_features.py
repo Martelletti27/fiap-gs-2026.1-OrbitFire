@@ -9,7 +9,11 @@ from pathlib import Path
 from src.application.db_loaders import load_cell_day_context
 from src.application.processed_io import FEATURES_PARQUET, write_parquet
 from src.config import Settings, ensure_data_dirs, load_settings
-from src.domain.features import CellDayFeatures, build_features_table
+from src.domain.features import (
+    CellDayFeatures,
+    build_features_table,
+    cell_day_features_to_record,
+)
 from src.infrastructure.db.repository import repository_session
 
 logger = logging.getLogger(__name__)
@@ -37,12 +41,19 @@ def build_features(settings: Settings | None = None) -> FeaturesBuildReport:
             include_weather=True,
             step="features",
         )
+        print(
+            f"Calculando features: {len(context.cell_ids)} celulas x "
+            f"{len(context.days)} dias...",
+            flush=True,
+        )
         rows = build_features_table(
             context.cell_ids,
             context.days,
             context.fires,
             context.weather,
+            grid_deg=cfg.grid_deg,
         )
+        print("Exportando parquet...", flush=True)
         parquet_path = _export_parquet(cfg.processed_dir, rows)
         logger.info(
             "Features: rows=%s cells=%s days=%s parquet=%s",
@@ -61,18 +72,7 @@ def build_features(settings: Settings | None = None) -> FeaturesBuildReport:
 
 def _export_parquet(processed_dir: Path, rows: list[CellDayFeatures]) -> Path:
     """Grava features em data/processed/features_cell_day.parquet."""
-    data = [
-        {
-            "cell_id": row.cell_id,
-            "day": row.day.isoformat(),
-            "fires_7d": row.fires_7d,
-            "fires_30d": row.fires_30d,
-            "days_without_rain": row.days_without_rain,
-            "temp_mean_7d": row.temp_mean_7d,
-            "season_month": row.season_month,
-        }
-        for row in rows
-    ]
+    data = [cell_day_features_to_record(row) for row in rows]
     return write_parquet(processed_dir, FEATURES_PARQUET, data)
 
 

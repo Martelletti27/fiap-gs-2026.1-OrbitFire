@@ -11,8 +11,8 @@ from src.infrastructure.db.repository import open_repository
 from src.infrastructure.firms.ingest import run_firms_ingest
 
 NASA_CSV = """latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_t31,frp,daynight
--16.05,-47.92,320.5,0.5,0.5,2026-06-01,1430,N,VIIRS,85,nrt,285.2,18.4,D
--12.54,-55.12,310.0,0.5,0.5,2026-06-02,1605,N,VIIRS,90,nrt,280.0,31.5,D
+-10.05,-47.92,320.5,0.5,0.5,2026-06-01,1430,N,VIIRS,85,nrt,285.2,18.4,D
+-8.20,-48.30,310.0,0.5,0.5,2026-06-02,1605,N,VIIRS,90,nrt,280.0,31.5,D
 """
 
 

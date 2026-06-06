@@ -27,6 +27,7 @@ class WeatherIngestResult:
     inserted: int
     skipped: int
     raw_path: Path | None = None
+    failed: bool = False
 
 
 def run_weather_ingest(settings: Settings | None = None) -> list[WeatherIngestResult]:

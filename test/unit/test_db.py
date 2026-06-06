@@ -105,6 +105,19 @@ def test_risk_score_unique_per_cell_date(repo_bundle) -> None:
     assert repo.count_risk_scores() == 1
 
 
+def test_upsert_risk_score_replaces_existing(repo_bundle) -> None:
+    """Upsert deve substituir score da mesma celula e data."""
+    repo, _, _ = repo_bundle
+    ref = date(2026, 6, 4)
+    repo.upsert_risk_score("GO_-16.00_-52.00", ref, 40.0, "medio", 0.40)
+    repo.upsert_risk_score("GO_-16.00_-52.00", ref, 90.0, "critico", 0.90)
+
+    rows = repo.list_risk_scores(ref)
+    assert len(rows) == 1
+    assert rows[0].score == 90.0
+    assert rows[0].band == "critico"
+
+
 def test_init_db_idempotent() -> None:
     """Chamar init_db duas vezes nao deve falhar."""
     engine = create_engine_for_db(memory=True)
