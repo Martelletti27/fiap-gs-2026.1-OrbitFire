@@ -1,18 +1,12 @@
-# FIAP - Faculdade de Informática e Administração Paulista
-
-<p align="center">
-<a href="https://www.fiap.com.br/">
-  <img src="../../../assets/logo-fiap.png" 
-       alt="FIAP - Faculdade de Informática e Administração Paulista" 
-       width="40%">
-</a>
-</p>
-
-<br>
-
 # OrbitFire
 
-## OrbitFire
+<p align="center">
+  <a href="https://www.fiap.com.br/">
+    <img src="assets/logo-fiap.png"
+         alt="FIAP - Faculdade de Informática e Administração Paulista"
+         width="35%">
+  </a>
+</p>
 
 ## 👥 Integrantes:
 - [Everton Marinho Souza](https://github.com/Emarinhos) — RM568137@fiap.com.br
@@ -32,7 +26,7 @@
 
 O **OrbitFire** é uma POC da Global Solution FIAP 2026.1 que prevê **risco de incêndio para o dia seguinte** no **Tocantins (TO)**, cruzando detecções orbitais da NASA FIRMS com dados climáticos locais e apoiando a priorização de brigadas.
 
-Satélites mostram onde já há fogo; gestores de defesa civil e brigadas florestais precisam saber **onde agir amanhã**. O OrbitFire responde a essa pergunta com um pipeline de dados e um modelo de machine learning (LightGBM) que estima, para cada célula geográfica do estado, a probabilidade de incêndio no dia seguinte. Esse resultado é convertido em **score de risco de 0 a 100** com faixas operacionais (baixo, médio, alto e crítico) e alimenta um ranking de áreas prioritárias para alocação de recursos (módulo M10).
+Satélites mostram onde já há fogo; gestores de defesa civil e brigadas florestais precisam saber **onde agir amanhã**. O OrbitFire responde a essa pergunta com um pipeline de dados e um modelo de machine learning (LightGBM) que estima, para cada célula geográfica do estado, a probabilidade de incêndio no dia seguinte. Esse resultado é convertido em **score de risco de 0 a 100** com faixas operacionais (baixo, médio, alto e crítico) e alimenta um ranking de áreas prioritárias para alocação de brigadas.
 
 A solução conecta a **economia espacial** a impacto positivo na Terra: dados de órbita (VIIRS e MODIS) deixam de ser apenas monitoramento reativo e passam a orientar **ação preventiva** antes do fogo se espalhar.
 

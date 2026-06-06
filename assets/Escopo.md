@@ -54,7 +54,7 @@
 | E4  | Features e labels             | Variaveis preditivas; label = incendio na celula no dia seguinte |
 | E5  | Modelo preditivo              | LightGBM treinado e serializado                                  |
 | E6  | Risk score                    | Score 0–100 com faixas baixo / medio / alto / critico            |
-| E7  | Priorizador de brigadas (M10) | Ranking Top-N com justificativa operacional                      |
+| E7  | Priorizador de brigadas | Ranking Top-N com justificativa operacional                      |
 | E8  | API REST                      | FastAPI: mapa de risco, ranking, focos ativos, health            |
 | E9  | Dashboard                     | Streamlit com mapa interativo, KPIs, filtros e export CSV        |
 | E10 | Modo demo offline             | `OFFLINE_MODE` com dados seed para apresentacao sem internet     |
@@ -109,7 +109,7 @@
 | M7     | API FastAPI             | Sim          |
 | M8     | Dashboard Streamlit     | Sim          |
 | M9     | Demo offline            | Sim          |
-| M10    | Priorizador de brigadas | Sim          |
+| Priorizador | Priorizador de brigadas | Sim          |
 | M11    | Resumo cognitivo        | Nao          |
 | M12    | ESP32                   | Nao (futuro) |
 
@@ -120,7 +120,7 @@
 
 - Demo roda com um comando documentado (API + dashboard ou script unico)
 - Mapa exibe risco preditivo para o Tocantins
-- Ranking de brigadas (M10) visivel na API e no dashboard
+- Ranking de brigadas visivel na API e no dashboard
 - Modo offline funcional para apresentacao em sala
 - Testes pytest passam localmente
 - README explica problema, solucao, arquitetura e limitacoes da POC

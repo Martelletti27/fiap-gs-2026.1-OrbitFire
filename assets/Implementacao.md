@@ -13,7 +13,7 @@ Acompanhamento do desenvolvimento da POC GS 2026.1.
 
 ## Produto
 
-**OrbitFire** — risco de incendio para **amanha** no **Tocantins (TO)**, com priorizador de brigadas (M10).
+**OrbitFire** — risco de incendio para **amanha** no **Tocantins (TO)**, com priorizador de brigadas.
 
 | | |
 |-|-|
@@ -57,6 +57,8 @@ python -m src.infrastructure.ml.train
 # Operacao diaria (apos treino)
 python -m src.infrastructure.firms.ingest
 python -m src.infrastructure.weather.ingest
+python -m src.application.predict_risk
+python -m src.application.rank_brigades
 pytest test/ -v
 ```
 
@@ -75,7 +77,7 @@ pytest test/ -v
 | E4 Features e labels | S2 | S2.E1–S2.E3 |
 | E5 Modelo LightGBM | S3 | S3.E1 |
 | E6 Risk score | S3 | S3.E2–S3.E3 |
-| E7 Priorizador M10 | S4 | S4.E1–S4.E2 |
+| E7 Priorizador de brigadas | S4 | S4.E1–S4.E2 |
 | E8 API REST | S5 | S5.E1–S5.E2 |
 | E9 Dashboard | S6 | S6.E1–S6.E2 |
 | E11 Testes | Transversal | Cada etapa |
@@ -136,7 +138,7 @@ pytest test/ -v
 
 ### Resumo da etapa (obrigatorio apos cada implementacao)
 
-Ao concluir o codigo de uma etapa, registrar no bloco **Resumo** da sprint (acima dos entregaveis) tres bullets em linguagem simples: o que funciona, por que importa e uma analogia curta.
+Ao concluir o codigo de uma etapa, registrar no bloco **Resumo** da sprint (acima dos entregaveis) dois bullets em linguagem simples: o que funciona e por que importa.
 
 ### Refatoracao e testes (sempre)
 
@@ -166,7 +168,7 @@ Ordem **obrigatoria** apos autorizacao da ultima etapa da Sprint:
 | S1 Ingestao | `feat(s1): ingestao FIRMS, clima e grade Centro-Oeste` | Sim (`1850326`) |
 | S2 Features | `feat(s2): features, labels e dataset de modelagem` | Sim (`f35789b`) |
 | S3 Modelo | `feat(s3): treino LightGBM, risk score e inferencia` | Nao |
-| S4 Priorizacao | `feat(s4): priorizador de brigadas M10` | Nao |
+| S4 Priorizacao | `feat(s4): priorizador de brigadas` | Nao |
 | S5 API | `feat(s5): API FastAPI e testes de integracao` | Nao |
 | S6 Dashboard | `feat(s6): dashboard Streamlit com mapa e ranking` | Nao |
 | S7 Entrega | `docs(s7): README final e checklist de entrega GS` | Nao |
@@ -239,7 +241,7 @@ fiap-gs-2026.1-OrbitFire/
 | M4 | Features e labels | S2 |
 | M5 | Motor IA LightGBM | S3 |
 | M6 | Risk score | S3 |
-| M10 | Priorizador brigadas | S4 |
+| priorizador | Priorizador brigadas | S4 |
 | M7 | API FastAPI | S5 |
 | M8 | Dashboard Streamlit | S6 |
 
@@ -256,12 +258,12 @@ fiap-gs-2026.1-OrbitFire/
 | S1 Ingestao | 3 | 3 | Concluida |
 | S2 Features | 3 | 3 | Concluida |
 | S3 Modelo | 3 | 3 | **Concluida** (commit pendente) |
-| S4 Priorizacao | 2 | 0 | Pendente |
+| S4 Priorizacao | 2 | 2 | Concluida localmente |
 | S5 API | 2 | 0 | Pendente |
 | S6 Dashboard | 2 | 0 | Pendente |
 | S7 Entrega | 2 | 0 | Pendente |
 
-**Etapa atual:** encerramento Sprint 3 — refatoracao, `pytest test/ -v`, commit.
+**Etapa atual:** encerramento Sprint 4 — refatoracao, `pytest test/ -v`, commit (com README/logo).
 
 ---
 
@@ -284,7 +286,7 @@ fiap-gs-2026.1-OrbitFire/
 | Campo | Valor |
 |-------|-------|
 | Objetivo | Config central, dependencias, paths e bbox Centro-Oeste |
-| Modulos | Preparacao M1–M10 |
+| Modulos | Preparacao M1–M12 |
 | Implementada | Sim |
 | Testada | Sim (`test/unit/test_config.py` — 8 testes) |
 | Autorizada | Sim |
@@ -292,8 +294,7 @@ fiap-gs-2026.1-OrbitFire/
 
 **Resumo:**
 - O projeto tem configuracao central (paths, bbox do Centro-Oeste, variaveis de ambiente) e dependencias definidas em um so lugar.
-- Tudo que vem depois usa as mesmas regras de regiao, pastas e chaves — evita cada modulo “inventar” seu proprio caminho.
-- O endereco e o manual da casa antes de mobiliar os comodos.
+- Tudo que vem depois usa as mesmas regras de regiao, pastas e chaves — evita cada modulo inventar seu proprio caminho.
 
 **Entregaveis:**
 - `src/config.py`, `src/.env.example`, `requirements.txt`
@@ -316,7 +317,6 @@ fiap-gs-2026.1-OrbitFire/
 **Resumo:**
 - Banco SQLite com tabelas para grade, focos de fogo, clima diario e scores de risco, com funcoes para gravar e ler.
 - Os dados deixam de ficar soltos em arquivos avulsos — ha um lugar fixo e estruturado para a POC crescer.
-- Um arquivo com gavetas etiquetadas, uma para cada tipo de informacao.
 
 **Entregaveis:**
 - `src/infrastructure/db/schema.py`
@@ -339,7 +339,6 @@ fiap-gs-2026.1-OrbitFire/
 **Resumo:**
 - Pacote minimo de focos e clima no repositorio; com `OFFLINE_MODE=1`, o sistema carrega esses dados sem chamar APIs externas.
 - Demo na banca e testes automatizados funcionam mesmo sem internet ou chave NASA.
-- Kit de amostras no laboratorio quando o fornecedor esta fora do ar.
 
 **Entregaveis:**
 - `data/seed/fire_events_seed.csv` — 8 focos Centro-Oeste (VIIRS + MODIS)
@@ -373,7 +372,6 @@ fiap-gs-2026.1-OrbitFire/
 **Resumo:**
 - Busca focos de incendio da NASA (VIIRS e MODIS) na regiao Centro-Oeste e grava no banco, sem duplicar o que ja existe.
 - O historico orbital e a materia-prima — sem focos reais, nao ha o que aprender nem o que prever.
-- Assinatura diaria do jornal de incendios visto de satelite.
 
 **Entregaveis:**
 - `src/infrastructure/firms/client.py` — fetch area/csv com retry
@@ -398,7 +396,6 @@ fiap-gs-2026.1-OrbitFire/
 **Resumo:**
 - Busca temperatura, chuva e vento diarios (Open-Meteo) e associa cada registro a uma celula da grade no banco.
 - Seca e calor aumentam risco de fogo — a IA precisa desses sinais junto com o historico de focos.
-- Previsao do tempo colada em cada quadradinho do mapa.
 
 **Entregaveis:**
 - `src/infrastructure/weather/client.py` — Open-Meteo forecast com `past_days`
@@ -423,8 +420,7 @@ fiap-gs-2026.1-OrbitFire/
 
 **Resumo:**
 - O Centro-Oeste e dividido em quadrados de ~11 km, cada um com identificador (`UF_lat_lon`) e estado (UF), persistidos no banco.
-- O risco e calculado por regiao pequena e comparavel — nao apenas “todo Goias” ou “todo Mato Grosso”.
-- Tabuleiro de xadrez sobre o mapa; cada casa tem nome e dono (UF).
+- O risco e calculado por regiao pequena e comparavel — nao apenas por estado inteiro.
 
 **Entregaveis:**
 - `src/domain/cell_id.py` — grade, `cell_id`, atribuicao UF
@@ -459,8 +455,7 @@ fiap-gs-2026.1-OrbitFire/
 
 **Resumo:**
 - Para cada celula e cada dia, o sistema monta sinais de risco: focos nos ultimos 7 e 30 dias, dias sem chuva, temperatura media da semana e mes do ano.
-- A IA nao adivinha no vazio — precisa de pistas do passado recente, como um meteorologista antes de prever.
-- Prontuario do paciente antes do medico dar parecer: febre recente, dias sem agua, temperatura alta.
+- A IA usa historico recente de focos e clima — sem essas pistas o modelo nao tem contexto para prever.
 
 **Entregaveis:**
 - `src/application/build_features.py` — `build_features()` + entrypoint
@@ -485,8 +480,7 @@ fiap-gs-2026.1-OrbitFire/
 
 **Resumo:**
 - Para cada celula e cada dia, marca se no dia seguinte houve fogo ali (sim = 1, nao = 0).
-- E o gabarito do exercicio — a IA aprende comparando as pistas com o que de fato aconteceu no dia seguinte.
-- Resposta do caderno: “amanha choveu ou nao?” — a IA estuda o padrao entre pista e resultado.
+- E o gabarito de treino — a IA aprende comparando features com o que de fato aconteceu no dia seguinte.
 
 **Entregaveis:**
 - `src/application/build_labels.py` — `build_labels()` + entrypoint
@@ -511,9 +505,8 @@ fiap-gs-2026.1-OrbitFire/
 | Status | **Concluida** |
 
 **Resumo:**
-- Junta pistas (features) e respostas (labels) numa tabela unica; separa os dias em treino (~80% no inicio) e teste (~20% no fim), sem misturar futuro no passado.
-- Material pronto para ensinar o modelo LightGBM a prever fogo amanha no proximo passo (S3).
-- Caderno de estudos com questoes e gabarito — primeira parte para estudar, ultima para prova surpresa.
+- Junta features e labels numa tabela unica; separa os dias em treino (~80% no inicio) e teste (~20% no fim), sem misturar futuro no passado.
+- Material pronto para treinar o modelo LightGBM a prever fogo amanha no proximo passo (S3).
 
 **Entregaveis:**
 - `src/application/build_dataset.py` — `build_dataset()` + entrypoint
@@ -555,9 +548,8 @@ python -m src.application.build_dataset
 | Status | **Concluida** |
 
 **Resumo:**
-- O sistema treina uma IA (LightGBM) com o dataset pronto e salva o modelo + metricas de avaliacao em `data/models/`.
-- E o cerebro preditivo — a partir daqui o OrbitFire consegue estimar probabilidade de fogo amanha por celula.
-- Como ensinar um aluno com provas antigas: estuda o passado (treino) e recebe nota na prova surpresa (teste).
+- O sistema treina LightGBM com o dataset pronto e salva o modelo + metricas de avaliacao em `data/models/`.
+- A partir daqui o OrbitFire estima probabilidade de fogo amanha por celula; `agent-data-analyst` apoia interpretacao das metricas para README e dashboard (S6).
 
 **Entregaveis:**
 - `src/infrastructure/ml/train.py` — `train_model()` + entrypoint
@@ -586,9 +578,8 @@ pytest test/unit/test_ml_train.py -v
 | Status | **Concluida** |
 
 **Resumo:**
-- A IA devolve um numero entre 0 e 1; o dominio transforma isso em nota de 0 a 100 e em faixa (baixo, medio, alto, critico).
-- Os cortes podem ser fixos (quartis 25/50/75) ou recalibrados por percentis do conjunto de treino apos o retreino TO.
-- E a ponte entre o modelo tecnico e o mapa que o gestor entende — sem depender de banco nem de API.
+- A IA devolve probabilidade 0–1; o dominio transforma em score 0–100 e faixa (baixo, medio, alto, critico).
+- Os cortes podem ser fixos ou recalibrados por percentis do conjunto de treino apos retreino.
 
 **Entregaveis:**
 - `src/domain/risk_score.py` — `probability_to_score`, `classify_band`, `assess_risk`, calibracao e I/O JSON
@@ -732,15 +723,32 @@ pytest test/unit/test_predict_risk.py -v
 
 ---
 
-## Sprint 4 — Priorizador M10
+## Sprint 4 — Priorizador de brigadas
+
+**Agentes:** `agent-domain-engineer` (S4.E1), `agent-data-analyst` (contrato de export S4.E2 e preparacao S6), `agent-test-engineer`.
 
 ### S4.E1 — Regras de priorizacao
+
+**Resumo:**
+- Score composto combina risk score, focos recentes (1d/7d/vizinhos) e impulso por faixa.
+- Funcoes puras em `prioritization.py` com ranking Top-N e desempate deterministico.
 
 **Entregaveis:** `src/domain/prioritization.py`, testes unitarios
 
 ### S4.E2 — Top-N e justificativa
 
-**Entregaveis:** `src/application/rank_brigades.py`, saida JSON/CSV
+**Resumo:**
+- `rank_brigades.py` le `risk_scores`, aplica priorizacao e exporta Top-N em JSON/CSV com justificativa operacional.
+- Saida alimenta API (S5) e dashboard (S6); `agent-data-analyst` valida colunas e KPIs do ranking via `dashboard-data-contract`.
+
+**Entregaveis:** `src/application/rank_brigades.py`, `test/unit/test_rank_brigades.py`, `data/processed/brigade_ranking.json`, `data/processed/brigade_ranking.csv`
+
+**Execucao prevista:**
+```powershell
+python -m src.application.predict_risk
+python -m src.application.rank_brigades
+pytest test/unit/test_rank_brigades.py -v
+```
 
 ### Encerramento Sprint 4
 
@@ -749,6 +757,8 @@ pytest test/unit/test_predict_risk.py -v
 ---
 
 ## Sprint 5 — API
+
+**Agentes:** `agent-system-architect` (rotas), `agent-data-analyst` (contrato JSON dos endpoints de mapa/ranking), `agent-test-engineer` (integracao).
 
 ### S5.E1 — Endpoints core
 
@@ -768,11 +778,13 @@ pytest test/unit/test_predict_risk.py -v
 
 ## Sprint 6 — Dashboard
 
+**Agentes:** `agent-data-analyst` + `agent-ux-ui` (skill `dashboard-data-contract` antes do codigo), `agent-test-engineer` (smoke).
+
 ### S6.E1 — Mapa e KPIs
 
 **Entregaveis:** `src/dashboard/app.py`, mapa de risco + focos
 
-### S6.E2 — Filtros, M10 e export CSV
+### S6.E2 — Filtros, ranking de brigadas e export CSV
 
 **Entregaveis:** sidebar, secao brigadas, export
 
@@ -855,7 +867,7 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 - [x] Sprint 1 — ingestao FIRMS, clima e grade (commit `1850326`)
 - [x] Sprint 2 — features, labels e dataset (commit `f35789b`)
 - [x] Sprint 3 — LightGBM, risk score e inferencia (local; commit pendente)
-- [ ] Sprint 4 — priorizador M10
+- [x] Sprint 4 — priorizador de brigadas (local; commit pendente)
 - [ ] Sprint 5 — API FastAPI
 - [ ] Sprint 6 — dashboard Streamlit
 - [ ] Sprint 7 — README publico e revisao Godoy
@@ -865,4 +877,4 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 
 ## Duvidas abertas
 
-Proximo passo: refatoracao e commit Sprint 3, ou autorizar **S4.E1** (priorizador M10).
+Proximo passo: refatoracao S0–S4, `pytest test/ -v` e commit Sprint 4 (inclui README/logo).

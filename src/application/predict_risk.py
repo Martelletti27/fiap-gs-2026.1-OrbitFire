@@ -22,6 +22,7 @@ from src.domain.features import (
     FirePoint,
     WeatherPoint,
     build_features_table,
+    cell_day_features_to_record,
 )
 from src.domain.risk_score import THRESHOLDS_FILENAME, assess_risk, load_thresholds
 from src.infrastructure.db.repository import repository_session
@@ -161,28 +162,13 @@ def _build_inference_features(
 def _predict_probabilities(model, feature_rows: list[tuple[str, CellDayFeatures]]) -> list[float]:
     """Aplica modelo LightGBM ao lote de features."""
     frame = pd.DataFrame(
-        [_features_to_record(features) for _, features in feature_rows]
+        [cell_day_features_to_record(features) for _, features in feature_rows]
     )
     missing = set(FEATURE_COLUMNS) - set(frame.columns)
     if missing:
         raise ValueError(f"Features de inferencia incompletas: {sorted(missing)}")
     x_frame = frame.loc[:, FEATURE_COLUMNS].apply(pd.to_numeric, errors="coerce")
     return model.predict_proba(x_frame)[:, 1].tolist()
-
-
-def _features_to_record(features: CellDayFeatures) -> dict[str, object]:
-    """Converte CellDayFeatures para linha compativel com o treino."""
-    return {
-        "fires_1d": features.fires_1d,
-        "fires_7d": features.fires_7d,
-        "fires_30d": features.fires_30d,
-        "days_without_rain": features.days_without_rain,
-        "temp_mean_7d": features.temp_mean_7d,
-        "precip_sum_7d": features.precip_sum_7d,
-        "wind_mean_7d": features.wind_mean_7d,
-        "neighbor_fires_7d": features.neighbor_fires_7d,
-        "season_month": features.season_month,
-    }
 
 
 def _print_predict_progress(done: int, total: int) -> None:
