@@ -59,6 +59,7 @@ python -m src.infrastructure.firms.ingest
 python -m src.infrastructure.weather.ingest
 python -m src.application.predict_risk
 python -m src.application.rank_brigades
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 pytest test/ -v
 ```
 
@@ -259,11 +260,11 @@ fiap-gs-2026.1-OrbitFire/
 | S2 Features | 3 | 3 | Concluida |
 | S3 Modelo | 3 | 3 | **Concluida** (commit pendente) |
 | S4 Priorizacao | 2 | 2 | Concluida localmente |
-| S5 API | 2 | 0 | Pendente |
+| S5 API | 2 | 2 | Concluida localmente |
 | S6 Dashboard | 2 | 0 | Pendente |
 | S7 Entrega | 2 | 0 | Pendente |
 
-**Etapa atual:** encerramento Sprint 4 — refatoracao, `pytest test/ -v`, commit (com README/logo).
+**Etapa atual:** encerramento Sprint 5 — refatoracao, `pytest test/ -v`, commit.
 
 ---
 
@@ -719,7 +720,7 @@ pytest test/unit/test_predict_risk.py -v
 - Commit Sprint 3 pendente de confirmacao; push apos merge local.
 
 - [x] Refatoracao S0–S3 · `pytest test/ -v`
-- [ ] Commit · Push
+- [x] Commit · Push (`480b4b0`)
 
 ---
 
@@ -764,9 +765,24 @@ pytest test/unit/test_rank_brigades.py -v
 
 `GET /health`, `/risk/map`, `/risk/ranking`, `/fires/active`
 
-**Entregaveis:** `src/api/main.py`, `src/api/routes/`
+**Resumo:**
+- API FastAPI expoe saude, mapa de risco, ranking com `justificativa` e focos FIRMS recentes.
+- Contrato alinhado a `dashboard-data-contract` (`agent-data-analyst`); routers finos delegam a `services.py`.
+- `build_brigade_ranking` extraido para reutilizacao sem export em cada request.
+
+**Entregaveis:** `src/api/main.py`, `src/api/routes.py`, `src/api/schemas.py`, `src/api/services.py`
+
+**Execucao prevista:**
+```powershell
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+# Swagger: http://localhost:8000/docs
+```
 
 ### S5.E2 — Testes integracao
+
+**Resumo:**
+- `test/integration/test_api.py` cobre os quatro endpoints com TestClient e BD temporario.
+- Sem HTTP externo; reutiliza fixture de inferencia de `test_predict_risk`.
 
 **Entregaveis:** `test/integration/test_api.py`
 
@@ -868,7 +884,7 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 - [x] Sprint 2 — features, labels e dataset (commit `f35789b`)
 - [x] Sprint 3 — LightGBM, risk score e inferencia (local; commit pendente)
 - [x] Sprint 4 — priorizador de brigadas (local; commit pendente)
-- [ ] Sprint 5 — API FastAPI
+- [x] Sprint 5 — API FastAPI (local; commit pendente)
 - [ ] Sprint 6 — dashboard Streamlit
 - [ ] Sprint 7 — README publico e revisao Godoy
 - [ ] M12 ESP32 (fora do MVP)
@@ -877,4 +893,4 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 
 ## Duvidas abertas
 
-Proximo passo: refatoracao S0–S4, `pytest test/ -v` e commit Sprint 4 (inclui README/logo).
+Proximo passo: Sprint 6 (dashboard Streamlit) ou encerramento Sprint 5 com commit.

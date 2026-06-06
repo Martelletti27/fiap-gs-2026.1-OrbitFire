@@ -19,7 +19,7 @@ from src.domain.prioritization import (
     build_justification,
     rank_priorities,
 )
-from src.infrastructure.db.repository import repository_session
+from src.infrastructure.db.repository import OrbitFireRepository, repository_session
 from src.infrastructure.db.schema import GridCell, RiskScore
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,16 @@ class BrigadeRankEntry:
 
 
 @dataclass(frozen=True)
+class BrigadeRankingResult:
+    """Ranking calculado sem exportar arquivos (API e jobs)."""
+
+    reference_date: date
+    top_n: int
+    total_candidates: int
+    entries: list[BrigadeRankEntry]
+
+
+@dataclass(frozen=True)
 class BrigadeRankingReport:
     """Resumo do ranking persistido em JSON e CSV."""
 
@@ -58,6 +68,31 @@ class BrigadeRankingReport:
     csv_path: Path
 
 
+def build_brigade_ranking(
+    settings: Settings | None = None,
+    *,
+    reference_date: date | None = None,
+    top_n: int = DEFAULT_TOP_N,
+) -> BrigadeRankingResult:
+    """Ranqueia celulas a partir de risk_scores sem gravar export."""
+    cfg = settings or load_settings()
+
+    with repository_session(cfg.db_path) as repository:
+        ref_day, entries, total = _compute_ranking(
+            repository,
+            cfg,
+            reference_date=reference_date,
+            top_n=top_n,
+        )
+
+    return BrigadeRankingResult(
+        reference_date=ref_day,
+        top_n=top_n,
+        total_candidates=total,
+        entries=entries,
+    )
+
+
 def rank_brigades(
     settings: Settings | None = None,
     *,
@@ -67,55 +102,72 @@ def rank_brigades(
     """Ranqueia celulas a partir de risk_scores e exporta JSON/CSV em processed/."""
     cfg = settings or load_settings()
     ensure_data_dirs(cfg)
+    result = build_brigade_ranking(
+        cfg,
+        reference_date=reference_date,
+        top_n=top_n,
+    )
 
-    with repository_session(cfg.db_path) as repository:
-        risk_rows = repository.list_risk_scores(reference_date)
-        if not risk_rows:
-            hint = (
-                "Execute python -m src.application.predict_risk antes do ranking"
-            )
-            if reference_date is not None:
-                raise ValueError(
-                    f"Sem risk_scores para {reference_date.isoformat()}. {hint}"
-                )
-            raise ValueError(f"Sem risk_scores no banco. {hint}")
-
-        ref_day = reference_date or max(row.reference_date for row in risk_rows)
-        risk_rows = [row for row in risk_rows if row.reference_date == ref_day]
-        if not risk_rows:
-            raise ValueError(f"Sem risk_scores para {ref_day.isoformat()}")
-
-        grid_by_id = {cell.cell_id: cell for cell in repository.list_grid_cells()}
-        fires = load_fire_points(repository, cfg.bbox, cfg.grid_deg)
-        weather = load_weather_points(repository)
-        cell_ids = [row.cell_id for row in risk_rows]
-        feature_by_cell = _feature_index(
-            cell_ids,
-            ref_day,
-            fires,
-            weather,
-            cfg.grid_deg,
-        )
-        candidates = _build_candidates(risk_rows, feature_by_cell)
-        ranked = rank_priorities(candidates, top_n=top_n)
-        entries = _to_entries(ranked, candidates, grid_by_id)
-
-    json_path, csv_path = _export_ranking(cfg.processed_dir, ref_day, top_n, entries)
+    json_path, csv_path = _export_ranking(
+        cfg.processed_dir,
+        result.reference_date,
+        result.top_n,
+        result.entries,
+    )
     logger.info(
         "Ranking brigadas: ref=%s top_n=%s candidates=%s json=%s",
-        ref_day,
-        top_n,
-        len(candidates),
+        result.reference_date,
+        result.top_n,
+        result.total_candidates,
         json_path,
     )
     return BrigadeRankingReport(
-        reference_date=ref_day,
-        top_n=top_n,
-        total_candidates=len(candidates),
-        entries=entries,
+        reference_date=result.reference_date,
+        top_n=result.top_n,
+        total_candidates=result.total_candidates,
+        entries=result.entries,
         json_path=json_path,
         csv_path=csv_path,
     )
+
+
+def _compute_ranking(
+    repository: OrbitFireRepository,
+    cfg: Settings,
+    *,
+    reference_date: date | None,
+    top_n: int,
+) -> tuple[date, list[BrigadeRankEntry], int]:
+    """Monta ranking em memoria a partir do repositorio."""
+    risk_rows = repository.list_risk_scores(reference_date)
+    if not risk_rows:
+        hint = "Execute python -m src.application.predict_risk antes do ranking"
+        if reference_date is not None:
+            raise ValueError(
+                f"Sem risk_scores para {reference_date.isoformat()}. {hint}"
+            )
+        raise ValueError(f"Sem risk_scores no banco. {hint}")
+
+    ref_day = reference_date or max(row.reference_date for row in risk_rows)
+    risk_rows = [row for row in risk_rows if row.reference_date == ref_day]
+    if not risk_rows:
+        raise ValueError(f"Sem risk_scores para {ref_day.isoformat()}")
+
+    grid_by_id = {cell.cell_id: cell for cell in repository.list_grid_cells()}
+    fires = load_fire_points(repository, cfg.bbox, cfg.grid_deg)
+    weather = load_weather_points(repository)
+    cell_ids = [row.cell_id for row in risk_rows]
+    feature_by_cell = _feature_index(
+        cell_ids,
+        ref_day,
+        fires,
+        weather,
+        cfg.grid_deg,
+    )
+    candidates = _build_candidates(risk_rows, feature_by_cell)
+    ranked = rank_priorities(candidates, top_n=top_n)
+    entries = _to_entries(ranked, candidates, grid_by_id)
+    return ref_day, entries, len(candidates)
 
 
 def _feature_index(
