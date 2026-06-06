@@ -41,7 +41,7 @@
 
 ---
 
-## 4. Entrega final (o que a banca deve ver)
+## 4. Entrega final (o que deve ser demonstrado)
 
 ### 4.1 Funcionalidades obrigatorias
 
@@ -132,7 +132,7 @@
 
 - Gestores de defesa civil e coordenadores de brigada florestal no Tocantins
 - Cooperativas agricolas em busca de alerta preventivo
-- Banca FIAP (demonstracao clara do valor da economia espacial aplicada)
+- Avaliacao FIAP (demonstracao clara do valor da economia espacial aplicada)
 
 ---
 

@@ -7,11 +7,17 @@ from fastapi.testclient import TestClient
 
 from src.api.main import create_app
 from src.application.predict_risk import predict_risk
-from src.domain.cell_id import build_grid_cells
+from src.config import DEFAULT_BBOX
+from src.domain.cell_id import snap_point_to_cell_id
+from src.domain.to_boundary import is_in_tocantins
 from src.infrastructure.db.repository import open_repository
 from test.unit.test_predict_risk import predict_settings as _predict_settings_fixture
 
 REF_DAY = date(2026, 6, 5)
+
+# Coordenada dentro do poligono TO (regiao de Palmas).
+TO_LAT = -10.1840
+TO_LON = -48.3336
 
 
 @pytest.fixture
@@ -74,15 +80,14 @@ def test_risk_ranking_returns_top_n(api_client: TestClient) -> None:
 def test_fires_active_lists_recent_events(api_client: TestClient) -> None:
     """GET /fires/active retorna focos na janela horaria."""
     settings = api_client.app.state.settings
-    specs = build_grid_cells(settings.bbox, settings.grid_deg)
+    assert is_in_tocantins(TO_LAT, TO_LON)
     repo, session, engine = open_repository(settings.db_path)
     try:
         repo.add_fire_event(
             "VIIRS_NRT",
             datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=2),
-            specs[0].lat_center,
-            specs[0].lon_center,
-            cell_id=specs[0].cell_id,
+            TO_LAT,
+            TO_LON,
         )
     finally:
         session.close()
@@ -94,6 +99,43 @@ def test_fires_active_lists_recent_events(api_client: TestClient) -> None:
     assert payload["hours"] == 24
     assert payload["total"] >= 1
     assert payload["fires"][0]["source"] == "VIIRS_NRT"
+
+
+def test_fires_summary_returns_aggregations(api_client: TestClient) -> None:
+    """GET /fires/summary agrega focos no TO para graficos."""
+    settings = api_client.app.state.settings
+    cell_id = snap_point_to_cell_id(TO_LAT, TO_LON, DEFAULT_BBOX, settings.grid_deg)
+    assert cell_id is not None
+    repo, session, engine = open_repository(settings.db_path)
+    try:
+        repo.add_fire_event(
+            "VIIRS_SP",
+            datetime(2024, 8, 15, 14, 0, 0),
+            TO_LAT,
+            TO_LON,
+            cell_id=cell_id,
+        )
+        repo.add_fire_event(
+            "MODIS_SP",
+            datetime(2024, 8, 16, 10, 0, 0),
+            TO_LAT,
+            TO_LON,
+            cell_id=cell_id,
+        )
+    finally:
+        session.close()
+        engine.dispose()
+
+    response = api_client.get("/fires/summary", params={"days": 30})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_in_region"] >= 2
+    assert "VIIRS" in payload["by_source"]
+    assert "MODIS" in payload["by_source"]
+    assert len(payload["monthly_counts"]) >= 1
+    assert len(payload["cell_ranking"]) >= 1
+    assert payload["cell_ranking"][0]["rank"] == 1
+    assert payload["cell_ranking"][0]["count"] >= 2
 
 
 def test_risk_map_missing_date_returns_404(api_client: TestClient) -> None:

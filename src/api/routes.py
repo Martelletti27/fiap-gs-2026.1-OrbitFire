@@ -10,6 +10,7 @@ from src.api import services
 from src.api.schemas import (
     ActiveFiresResponse,
     ErrorResponse,
+    FiresSummaryResponse,
     HealthResponse,
     RiskMapResponse,
     RiskRankingResponse,
@@ -98,3 +99,22 @@ def fires_active(
     """Focos FIRMS detectados na janela horaria."""
     payload = services.get_active_fires(_settings(request), hours=hours)
     return ActiveFiresResponse(**payload)
+
+
+@router.get(
+    "/fires/summary",
+    response_model=FiresSummaryResponse,
+    tags=["focos"],
+)
+def fires_summary(
+    request: Request,
+    days: int = Query(default=30, ge=7, le=120),
+    top_cells: int = Query(default=15, ge=5, le=50),
+) -> FiresSummaryResponse:
+    """Agregacoes de focos no Tocantins para analise temporal."""
+    payload = services.get_fires_summary(
+        _settings(request),
+        days=days,
+        top_cells=top_cells,
+    )
+    return FiresSummaryResponse(**payload)

@@ -20,7 +20,7 @@ Acompanhamento do desenvolvimento da POC GS 2026.1.
 | **Problema** | Satelites mostram onde ja ha fogo; gestores precisam saber **onde agir amanha**. |
 | **Solucao** | IA cruza historico orbital (FIRMS) + clima e gera mapa de risco + ranking operacional. |
 | **Regiao** | Tocantins — bbox lat -13,5 a -5,2 / lon -50,7 a -45,7 (~4.150 celulas, `assets/Escopo.md` secao 2) |
-| **Publico** | Defesa civil, brigadas florestais, banca FIAP |
+| **Publico** | Defesa civil, brigadas florestais, avaliacao FIAP (entrega GS) |
 
 ---
 
@@ -222,7 +222,7 @@ fiap-gs-2026.1-OrbitFire/
       weather/              # S1.E2
       ml/                   # S3.E1 — train.py implementado
     api/                    # S5 — pendente
-    dashboard/              # S6 — pendente
+    dashboard/              # S6 — painel Streamlit (consome API)
   test/
     conftest.py             # pythonpath sem pytest.ini na raiz
     unit/                   # S0.E1 em diante
@@ -261,10 +261,10 @@ fiap-gs-2026.1-OrbitFire/
 | S3 Modelo | 3 | 3 | **Concluida** (commit pendente) |
 | S4 Priorizacao | 2 | 2 | Concluida localmente |
 | S5 API | 2 | 2 | Concluida localmente |
-| S6 Dashboard | 2 | 0 | Pendente |
+| S6 Dashboard | 2 | 2 | Concluida localmente |
 | S7 Entrega | 2 | 0 | Pendente |
 
-**Etapa atual:** encerramento Sprint 5 — refatoracao, `pytest test/ -v`, commit.
+**Etapa atual:** encerramento Sprint 6 — commit e push; em seguida Sprint 7 (README e entrega FIAP).
 
 ---
 
@@ -339,7 +339,7 @@ fiap-gs-2026.1-OrbitFire/
 
 **Resumo:**
 - Pacote minimo de focos e clima no repositorio; com `OFFLINE_MODE=1`, o sistema carrega esses dados sem chamar APIs externas.
-- Demo na banca e testes automatizados funcionam mesmo sem internet ou chave NASA.
+- Demo em sala e testes automatizados funcionam mesmo sem internet ou chave NASA.
 
 **Entregaveis:**
 - `data/seed/fire_events_seed.csv` — 8 focos Centro-Oeste (VIIRS + MODIS)
@@ -798,15 +798,32 @@ uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 
 ### S6.E1 — Mapa e KPIs
 
-**Entregaveis:** `src/dashboard/app.py`, mapa de risco + focos
+**Resumo:**
+- Painel Streamlit modular consome somente a API REST (`API_BASE_URL`).
+- Mapa de calor no poligono TO (`to_boundary.py`); marcadores alto/critico; legenda interna compacta.
+- Quatro KPIs com data em dd/mm/aa; subtitulo explicando o projeto.
 
-### S6.E2 — Filtros, ranking de brigadas e export CSV
+**Entregaveis:** `src/dashboard/app.py`, `api_client.py`, `kpis.py`, `map_view.py`, `formatters.py`
 
-**Entregaveis:** sidebar, secao brigadas, export
+**Execucao prevista:**
+```powershell
+uvicorn src.api.main:app --host 127.0.0.1 --port 8001
+$env:PYTHONPATH = "."
+streamlit run src/dashboard/app.py
+```
+
+### S6.E2 — Filtros, ranking, graficos e export CSV
+
+**Resumo:**
+- Sidebar: UF fixa TO, data somente leitura, faixa e Top-N editaveis, toggle de focos.
+- Graficos Altair: sazonalidade mensal e ranking historico de focos por quadrante (`/fires/summary`).
+- Ranking de brigadas com justificativa e export CSV; 131 testes passando.
+
+**Entregaveis:** `sidebar.py`, `ranking_view.py`, `fires_charts.py`, `test/unit/test_dashboard_api_client.py`, `test/unit/test_fires_charts.py`, `test/unit/test_map_view.py`
 
 ### Encerramento Sprint 6
 
-- [ ] Refatoracao S0–S6 · `pytest test/ -v` · Commit · Push
+- [x] Refatoracao S0–S6 · `pytest test/ -v` (131 testes) · Commit · Push pendente
 
 ---
 
@@ -873,6 +890,7 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 | 2026-06-06 | S3.E2 | Risk score, faixas e `thresholds.json` |
 | 2026-06-06 | S3 melhorias | Retreino TO — itens 1–4 (features, vizinhos, tuning, calibracao) |
 | 2026-06-06 | S3.E3 | Inferencia batch `predict_risk.py`, upsert em `risk_scores` |
+| 2026-06-05 | S6 | Dashboard Streamlit (mapa, KPIs, ranking, CSV); README treino vs operacao |
 
 ---
 
@@ -885,7 +903,7 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 - [x] Sprint 3 — LightGBM, risk score e inferencia (local; commit pendente)
 - [x] Sprint 4 — priorizador de brigadas (local; commit pendente)
 - [x] Sprint 5 — API FastAPI (local; commit pendente)
-- [ ] Sprint 6 — dashboard Streamlit
+- [x] Sprint 6 — dashboard Streamlit (local; commit pendente)
 - [ ] Sprint 7 — README publico e revisao Godoy
 - [ ] M12 ESP32 (fora do MVP)
 
@@ -893,4 +911,4 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 
 ## Duvidas abertas
 
-Proximo passo: Sprint 6 (dashboard Streamlit) ou encerramento Sprint 5 com commit.
+Proximo passo: Sprint 7 (README execucao, video, PDF e links entrega FIAP).

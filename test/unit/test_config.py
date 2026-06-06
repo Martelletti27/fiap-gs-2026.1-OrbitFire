@@ -52,6 +52,7 @@ def test_project_root_contains_src() -> None:
 def test_load_settings_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     """Paths de dados devem ficar sob data/ na raiz do projeto."""
     monkeypatch.delenv("DB_PATH", raising=False)
+    monkeypatch.delenv("API_BASE_URL", raising=False)
     monkeypatch.setenv("OFFLINE_MODE", "0")
     settings = load_settings(env_file=Path("/arquivo/inexistente.env"))
 
@@ -62,6 +63,14 @@ def test_load_settings_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.seed_dir == settings.data_dir / "seed"
     assert settings.models_dir == settings.data_dir / "models"
     assert settings.db_path == settings.project_root / "data" / "orbitfire.db"
+    assert settings.api_base_url == "http://127.0.0.1:8000"
+
+
+def test_api_base_url_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """API_BASE_URL customiza endpoint do dashboard."""
+    monkeypatch.setenv("API_BASE_URL", "http://localhost:9000/")
+    settings = load_settings(env_file=Path("/arquivo/inexistente.env"))
+    assert settings.api_base_url == "http://localhost:9000"
 
 
 def test_offline_mode_parsing(monkeypatch: pytest.MonkeyPatch) -> None:

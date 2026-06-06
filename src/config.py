@@ -89,6 +89,7 @@ class Settings:
     processed_dir: Path
     seed_dir: Path
     models_dir: Path
+    api_base_url: str
 
 
 def project_root() -> Path:
@@ -128,6 +129,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
         processed_dir=data_dir / "processed",
         seed_dir=data_dir / "seed",
         models_dir=data_dir / "models",
+        api_base_url=os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
     )
 
 

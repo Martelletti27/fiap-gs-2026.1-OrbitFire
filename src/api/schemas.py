@@ -83,6 +83,41 @@ class ActiveFiresResponse(BaseModel):
     fires: list[ActiveFire]
 
 
+class FireDailyCount(BaseModel):
+    """Contagem de focos em um dia."""
+
+    day: date
+    count: int
+
+
+class FireMonthlyCount(BaseModel):
+    """Contagem de focos em um mes."""
+
+    month: str
+    count: int
+
+
+class FireCellRank(BaseModel):
+    """Quadrante da grade com mais focos no historico."""
+
+    rank: int
+    cell_id: str
+    lat: float
+    lon: float
+    count: int
+
+
+class FiresSummaryResponse(BaseModel):
+    """Agregacoes de focos no Tocantins para graficos do dashboard."""
+
+    days: int
+    total_in_region: int
+    daily_counts: list[FireDailyCount]
+    by_source: dict[str, int]
+    monthly_counts: list[FireMonthlyCount]
+    cell_ranking: list[FireCellRank]
+
+
 class ErrorResponse(BaseModel):
     """Corpo padrao de erro."""
 
