@@ -1,5 +1,4 @@
 # Configuracao local (nao versionar)
-.cursor/
 .env
 .venv/
 __pycache__/

@@ -123,7 +123,7 @@
 - Ranking de brigadas visivel na API e no dashboard
 - Modo offline funcional para apresentacao em sala
 - Testes pytest passam localmente
-- README explica problema, solucao, arquitetura e limitacoes da POC
+- README explica problema, solucao, arquitetura e como executar
 - Nenhuma feature fora da secao 4.2 implementada sem atualizar este escopo
 
 ---

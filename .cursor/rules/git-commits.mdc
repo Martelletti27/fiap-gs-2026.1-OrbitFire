@@ -1,0 +1,78 @@
+---
+description: Commits Git limpos; sem citar ferramentas de IA no historico ou no repo
+alwaysApply: true
+---
+
+# Commits Git
+
+## Branch unica
+
+- Trabalhar **sempre** na branch `main`.
+- **Nunca** criar branch nova, worktree ou fork local sem pedido explicito do usuario.
+- Commits por sprint na `main` (ex.: `feat(s0): ...`, `feat(s1): ...`).
+
+## Refatoracao e testes (sempre)
+
+**Sempre que uma refatoracao for feita** — ao fim de Sprint, revisao SOLID, `refactor:` isolado ou ajuste incremental:
+
+1. Rodar **toda** a suite: `pytest test/ -v`.
+2. **Nao** commitar, fazer push nem encerrar etapa com testes falhando ou sem ter rodado os testes apos o diff de refatoracao.
+3. Se falhar: corrigir antes de seguir.
+
+Comando obrigatorio apos refatoracao:
+
+```bash
+pytest test/ -v
+```
+
+## Refatoracao ao fim de cada Sprint (antes do commit)
+
+Ao encerrar **todas as etapas** de uma Sprint e com autorizacao do usuario na ultima etapa:
+
+1. **Refatorar** o codigo de **todas as sprints ja implementadas** (S0 ate a sprint em encerramento) — sem mudar comportamento. A sprint que fecha e o gatilho; o escopo e cumulativo, nao so o diff da sprint atual.
+2. Rodar `pytest test/ -v` (**obrigatorio** — ver secao acima).
+3. Apresentar mensagem de commit e **aguardar confirmacao** do usuario.
+4. So entao commitar e push.
+
+Dono da refatoracao: `agent-code-reviewer` (checklist SOLID) com consulta a `agent-simplicity-defender` se necessario. `agent-git-manager` **nao** commita antes dessa etapa.
+
+## Proibido citar ferramentas de IA
+
+Em **commits**, **PRs** e **qualquer arquivo versionado** (README, docs, codigo, comentarios, `.gitignore`, hooks, templates):
+
+- **Nunca** mencionar Cursor, usuario do Cursor ou atribuicao a assistentes de IA.
+- **Nunca** incluir trailers como `Co-authored-by: Cursor`, `cursoragent@cursor.com` ou variantes.
+- **Nunca** adicionar texto de exemplo, comentario ou documentacao que cite essas ferramentas.
+
+## Confirmacao obrigatoria
+
+- **Sempre** apresentar titulo e corpo da mensagem ao usuario e **aguardar confirmacao explicita** antes de commitar.
+- Pedido de "faca commit" **nao** substitui a confirmacao da mensagem.
+- Se o usuario pedir ajustes, repetir a confirmacao com o texto revisado.
+- **Nunca** commitar com mensagem diferente da aprovada.
+
+## Garantir mensagem exata no historico
+
+Alguns ambientes alteram `git commit` (trailers, corpo extra). Para usar **somente** o texto aprovado:
+
+1. `git add` dos arquivos acordados.
+2. Criar o commit com `git.exe commit-tree` e `-m` para titulo e corpo **exatamente** como o usuario confirmou.
+3. `git reset --hard` para o hash retornado por `commit-tree`.
+4. Validar: `git log -1 --format=%B` deve coincidir com a mensagem aprovada, sem linhas extras.
+5. Se divergir, corrigir com `commit-tree` antes de qualquer push.
+
+Exemplo (commit com pai):
+
+```powershell
+$tree = git write-tree
+$parent = git rev-parse HEAD
+$new = git.exe commit-tree $tree -p $parent -m "titulo aprovado" -m "corpo aprovado"
+git.exe reset --hard $new
+```
+
+Commit inicial (sem pai): omitir `-p $parent`.
+
+## Ao criar commit
+
+- Mensagem apenas com titulo e corpo escritos para o autor humano do repositorio.
+- Apos commitar, validar com `git log -1 --format=fuller` antes de push.

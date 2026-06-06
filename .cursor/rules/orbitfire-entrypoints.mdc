@@ -1,0 +1,42 @@
+---
+description: OrbitFire — config, .env, requirements e execucao local
+globs: src/config.py,requirements.txt,src/.env.example
+alwaysApply: false
+---
+
+# Entrypoints e config
+
+## Arquivos
+
+- `src/config.py` — paths (`DATA_DIR`, `DB_PATH`), bbox Centro-Oeste, `FIRMS_MAP_KEY`, `OFFLINE_MODE`, `API_URL`
+- `requirements.txt` — fastapi, uvicorn, sqlalchemy, pandas, lightgbm, streamlit, folium, pytest, python-dotenv
+- `src/.env.example` — template sem secrets (copiar para `.env` na raiz)
+
+## Execucao local
+
+```bash
+# API
+uvicorn src.api.main:app --reload
+
+# Dashboard (outro terminal)
+streamlit run src/dashboard/app.py
+
+# Ingestao manual
+python -m src.infrastructure.firms.ingest
+python -m src.infrastructure.weather.ingest
+```
+
+## Diretorios
+
+- `data/raw/` — dados brutos FIRMS e clima
+- `data/processed/` — grade, features, labels
+- `data/models/` — modelo LightGBM e metricas
+- `data/seed/` — demo offline
+- `test/unit/`, `test/integration/` — pytest
+
+## Regras
+
+- Novo path persistente → `config.py` + documentar no README.
+- Executar da raiz do repo.
+
+Skill: `ops-config-paths`

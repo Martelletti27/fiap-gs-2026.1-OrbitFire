@@ -1,0 +1,41 @@
+---
+description: OrbitFire — camadas em src/ (domain, application, infrastructure, api, dashboard)
+globs: src/**/*.py
+alwaysApply: false
+---
+
+# Python — `src/`
+
+## Camadas
+
+| Pasta | Responsabilidade |
+|-------|------------------|
+| `domain/` | Regras puras: `region_key`, `risk_score`, priorizacao de brigadas (sem requests/SQL/ML) |
+| `application/` | Casos de uso: grade, features, labels, dataset, inferencia, ranking brigadas |
+| `infrastructure/` | FIRMS, clima, SQLite, ML (LightGBM) |
+| `api/` | FastAPI: routers finos, schemas Pydantic |
+| `dashboard/` | Streamlit: consome API, nao BD direto |
+| `config.py` | env, paths, bbox Centro-Oeste, constantes |
+
+## Proibido
+
+- Regra de `risk_score` ou priorizacao em **router** FastAPI ou **Streamlit**.
+- `requests` a NASA FIRMS ou APIs de clima dentro de `domain/`.
+- Path hardcoded — usar `config.py` e variaveis de ambiente.
+- Dashboard lendo SQLite diretamente (usar API).
+
+## Padrões
+
+- Type hints em funcoes publicas de `domain/`, `application/` e `api/`.
+- Adaptadores FIRMS e clima isolados em `infrastructure/`.
+- Injecao de sessao DB ou repositorio nos jobs (testavel).
+
+## Estilo
+
+- Sem emoji; comentarios breves (`orbitfire-style.mdc`, skill `write-code-comments`).
+
+## Referencia
+
+- Skill: `architecture-src-layers`
+- Escopo: `docs/Escopo.md`
+- Sprints: `docs/Implementacao.md`

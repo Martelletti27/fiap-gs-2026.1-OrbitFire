@@ -1,0 +1,42 @@
+---
+description: OrbitFire — models, SQLite, ingestao FIRMS/clima e persistencia
+globs: src/infrastructure/**,data/**
+alwaysApply: false
+---
+
+# Dados e persistência
+
+## Modelos (SQLite)
+
+Conforme `docs/Implementacao.md` (S0.E2):
+
+- `grid_cells` — celulas do Centro-Oeste (`region_key`, centro lat/lon, UF)
+- `fire_events` — deteccoes FIRMS individuais
+- `weather_daily` — temperatura, precipitacao, vento por dia/regiao
+- `risk_scores` — score 0–100 e faixa por celula/data
+
+Alteracoes de schema: migration versionada ou script SQL em `docs/`.
+
+## Deduplicacao (fire_events)
+
+- Chave natural: `(source, acq_datetime, lat, lon)` com arredondamento (4 casas).
+- Ingestao idempotente: reexecutar job nao infla contagem.
+
+## Banco
+
+- POC: SQLite em `data/` — **nunca** commitar `*.db`.
+- Testes: SQLite `:memory:` ou fixture temporario.
+- Seed demo: `data/seed/` (CSV pequeno, commitavel).
+
+## Fontes externas
+
+- `FIRMS_MAP_KEY` apenas em `.env` / ambiente.
+- Adaptadores com timeout, retry e log de falha.
+- `OFFLINE_MODE=1` le seed, nao chama API.
+
+## Regiao
+
+- Bbox Centro-Oeste: GO, MT, MS, DF (`src/config.py`).
+- `region_key` definido em `domain/`, nao na camada de persistencia.
+
+Skills: `data-sqlite-persistence`, `etl-firms-ingestion`

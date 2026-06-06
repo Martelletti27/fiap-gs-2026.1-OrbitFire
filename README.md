@@ -24,23 +24,23 @@
 
 ## 📜 Descrição
 
-O **OrbitFire** é uma POC da Global Solution FIAP 2026.1 que prevê **risco de incêndio para o dia seguinte** no **Tocantins (TO)**, cruzando detecções da NASA FIRMS com clima local. Satélites mostram onde já há fogo; gestores precisam saber **onde agir amanhã**. O sistema cobre ~4.150 células de 0,1° sobre o TO, persiste os dados em SQLite e expõe **score de risco (0–100)** e **ranking de prioridade** para brigadas via API e dashboard.
+O **OrbitFire** é a solução da Global Solution FIAP 2026.1 para prever **risco de incêndio no dia seguinte** no **Tocantins (TO)**. A NASA FIRMS mostra onde há fogo hoje; o sistema combina essas detecções com clima local (Open-Meteo) e indica **onde priorizar brigadas amanhã**, com **score de risco (0–100)** e ranking. A grade tem ~4.150 células de 0,1°, os dados ficam em SQLite e o resultado é exposto por API FastAPI e dashboard Streamlit.
 
-O pipeline usa **fontes diferentes para treinar e para operar**, mas o mesmo modelo LightGBM em todo o ciclo. No **treino**, FIRMS VIIRS/MODIS **SP** (jun–set/2024) e clima Open-Meteo **Archive** alimentam features, labels (fogo amanhã) e o classificador salvo em `data/models/lgbm_orbitfire.pkl`. Na **operação diária**, o modelo já treinado consome FIRMS **NRT** (últimos 5 dias) e clima **Forecast** (7 dias passados + hoje); a inferência (`predict_risk`) grava scores em `risk_scores`, o priorizador monta o ranking e a API (`/risk/map`, `/risk/ranking`) e o dashboard Streamlit exibem o resultado.
+Um único modelo LightGBM atende treino e operação diária, trocando apenas as fontes de dados:
 
 | Etapa | NASA FIRMS | Open-Meteo | Papel |
 |-------|------------|------------|-------|
-| Treino | VIIRS/MODIS **SP** (jun–set/2024) | **Archive** | Aprender padrões históricos e gerar labels |
-| Operação | VIIRS/MODIS **NRT** (5 dias) | **Forecast** | Atualizar features e prever risco para amanhã |
+| Treino | VIIRS/MODIS **SP** (jun–set/2024) | **Archive** | Gerar features, labels e treinar o classificador |
+| Operação | VIIRS/MODIS **NRT** (5 dias) | **Forecast** | Atualizar features e inferir risco para amanhã |
+
+Na operação, `predict_risk` grava os scores em `risk_scores`; a API (`/risk/map`, `/risk/ranking`) e o dashboard consomem esse resultado.
 
 ### Modelo e calibragem
 
-O LightGBM prevê **fogo amanhã** por célula. O holdout é temporal: jun–ago/2024 para treino, set/2024 para teste (502.150 linhas; ~9% de positivos no teste). Após o treino aplicamos duas calibragens:
+O classificador prevê **fogo amanhã** por célula. O holdout é temporal: jun–ago/2024 para treino, set/2024 para teste (502.150 linhas; ~9% de positivos). Duas calibragens pós-treino:
 
-1. **Faixas de risk score** — limites `medio`, `alto` e `critico` em `thresholds.json`, derivados dos percentis 50/75/90 das probabilidades do treino (escala 0–100).
-2. **Threshold de classificação** — ponto que maximiza **F1** no teste (atualmente **0,80**), usado na matriz abaixo; distinto do corte fixo 0,50.
-
-Em relação ao baseline inicial do TO (5 features, threshold 0,50), o modelo atual reduziu falsos alarmes de **11.656** para **3.658** no teste, mantendo recall útil (**57,3%**) para priorização. A acurácia isolada não é a métrica principal: um modelo que sempre prevê “sem fogo” já alcançaria ~90% no conjunto desbalanceado.
+1. **Faixas de risk score** — limites `medio`, `alto` e `critico` em `thresholds.json` (percentis 50/75/90 do treino, escala 0–100).
+2. **Threshold de classificação** — ponto que maximiza **F1** no teste (**0,80**), usado na matriz abaixo.
 
 | Métrica | Baseline | Modelo atual |
 |---------|----------|--------------|
@@ -54,9 +54,7 @@ Em relação ao baseline inicial do TO (5 features, threshold 0,50), o modelo at
 
 *103.750 amostras: TN 90.712 · FP 3.658 · FN 4.006 · TP 5.374. KPIs à esquerda do gráfico.*
 
-Detalhes do retreino e tuning em `assets/Implementacao.md`.
-
-**Entregas:** ingestão FIRMS e clima, grade SQLite, features/labels, modelo preditivo, risk score, priorizador de brigadas, API FastAPI, dashboard Streamlit e modo demo offline (`OFFLINE_MODE`).
+Detalhes do retreino em `assets/Implementacao.md`.
 
 
 ## 📁 Estrutura de pastas
@@ -220,14 +218,6 @@ uvicorn src.api.main:app --host 127.0.0.1 --port 8000
 ```powershell
 pytest test/ -v
 ```
-
-### Limitações da POC
-
-- Cobertura restrita ao **Tocantins (TO)** (~2.285 células dentro do contorno estadual).
-- Modelo treinado com histórico **jun–set/2024**; operação usa fontes NRT/Forecast.
-- SQLite local — não há deploy em nuvem nesta entrega.
-- Classe de fogo amanhã é rara (~9% no teste); métricas devem ser lidas com contexto (ver matriz acima).
-- Dashboard exige API em execução; não consulta o banco diretamente.
 
 
 ## 📋 Licença

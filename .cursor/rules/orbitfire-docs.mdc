@@ -1,0 +1,33 @@
+---
+description: OrbitFire — documentacao pt-BR alinhada a estrutura FIAP (docs/, README)
+globs: docs/**,README.md
+alwaysApply: false
+---
+
+# Documentacao
+
+## Onde escrever
+
+| Conteudo | Local |
+|----------|--------|
+| Visao geral / install / como rodar | `/README.md` (final derivado de Escopo) |
+| Entrega final (congelado) | `docs/Escopo.md` — local, nao versionado; alterar so com autorizacao |
+| Sprints e progresso | `docs/Implementacao.md` — local, nao versionado |
+| Edital FIAP | `docs/Titulo.md` — local, nao versionado |
+| Arquitetura, API | `docs/arquitetura.md`, `docs/api.md` (quando criados) |
+| Roteiro banca | `docs/pitch.md` (quando criado) |
+| Dados seed / amostras | `data/seed/` + README em `data/` se necessario |
+| Agents / skills / rules | `.cursor/` (local, nao versionado) |
+
+## Regras
+
+- `Escopo.md`, `Implementacao.md` e `Titulo.md` ficam em `docs/.gitignore` — **nunca** commitar; excluir na entrega final.
+- Conteudo publico vai para `README.md` e, se necessario, `docs/arquitetura.md`, `docs/api.md`, `docs/pitch.md`.
+- **pt-BR**, frases completas, **sem emoji**.
+- **Nunca citar** assistentes de IA em arquivos versionados.
+- Comandos atualizados: `uvicorn`, `streamlit`, `pytest`, jobs de ingestao.
+- Nao duplicar codigo inteiro — referenciar arquivo e linha.
+- Narrativa GS: satelite FIRMS → clima → IA (LightGBM) → risk score → priorizacao brigadas → dashboard.
+- Etapas em `docs/Implementacao.md` so concluem com autorizacao do usuario.
+
+Skill: `docs-repository-structure`

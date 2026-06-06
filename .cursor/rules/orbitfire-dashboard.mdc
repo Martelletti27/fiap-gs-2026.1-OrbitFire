@@ -1,0 +1,38 @@
+---
+description: OrbitFire — Streamlit + Folium/PyDeck; consome API REST
+globs: src/dashboard/**
+alwaysApply: false
+---
+
+# Dashboard (`src/dashboard/`)
+
+## Regras
+
+- **Somente** HTTP para API local (`API_BASE_URL` em config/env).
+- Mapa de **risco preditivo** para o **Tocantins (TO)** — nao apenas focos ativos.
+- KPIs: celulas no TO, alto+critico, focos 24h, data de referencia.
+- Secao **Prioridade de brigadas**: tabela Top-N com justificativa.
+- Filtros: faixa de risco e Top-N editaveis; **UF fixa TO**; **data de referencia** somente leitura quando ha uma unica data no banco.
+- Subtitulo com frase que explica o projeto (FIRMS + clima → risco amanha no TO).
+- Mapa: **heatmap** Folium (pontos pequenos, intensidade = score); contorno em `src/domain/to_boundary.py`; legenda com gradiente e alto contraste.
+- Data de referencia em **dd/mm/aa** (`format_date_short`).
+- Apos o mapa: graficos de focos via `GET /fires/summary` (diario, satelite, sazonalidade).
+- Ajustes de mapa, filtros ou KPIs: **`agent-data-analyst`** define regras → **`agent-ux-ui`** implementa (skill `dashboard-data-contract`).
+
+## Proibido
+
+- Logica de `risk_score` ou priorizacao duplicada no dashboard.
+- Credenciais FIRMS no Streamlit.
+- Plotar bbox retangular inteiro quando o escopo e apenas o poligono do TO.
+- Filtros editaveis para UF ou data quando o contrato define valor unico.
+
+## Execucao
+
+```bash
+uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+streamlit run src/dashboard/app.py
+```
+
+API deve responder `/health` antes do painel.
+
+Skills: `dashboard-data-contract` (`agent-data-analyst` + `agent-ux-ui`); `ux-streamlit-dashboard-orbitfire`, `ux-streamlit-layout-review`, `ux-streamlit-copy-controls` (`agent-ux-ui`); `write-code-comments`

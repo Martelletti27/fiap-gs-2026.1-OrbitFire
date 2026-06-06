@@ -24,28 +24,31 @@ Acompanhamento do desenvolvimento da POC GS 2026.1.
 
 ---
 
-## Estado real do repositorio (2026-06-05)
+## Estado real do repositorio (2026-06-06)
 
 | Item | Status |
 |------|--------|
-| Ultimo commit em `origin/main` | `2d0dc81` — `docs: README OrbitFire e documentacao em assets/` |
-| Historico | `3212ca0` · `f6d9932` · `88f7913` · `1850326` · `f35789b` |
+| Ultimo commit em `origin/main` | `a44f7fa` — `docs(s7): README com guia de instalacao e execucao` |
+| Historico recente | `cec5dc7` (S3) · `480b4b0` (S4) · `094ef0b` (S5) · `66b67d2` (S6) · `a44f7fa` (S7.E1) |
 | Raiz | `README.md`, `requirements.txt`, pastas — sem `pytest.ini` |
 | `.env` | Na raiz (gitignored); template em `src/.env.example` |
-| `assets/Escopo.md`, `Titulo.md`, `Implementacao.md` | Versionados em `assets/` |
-| `src/` | S0–S2 em `main`; S3.E1 local (`infrastructure/ml/train.py`) |
-| `test/unit/` | 25 arquivos — **100 testes** passando |
-| `data/models/` | `lgbm_orbitfire.pkl`, `metrics.json` (gitignored) |
+| `assets/` | `Escopo.md`, `Titulo.md`, `Implementacao.md`, `confusion_matrix.png` versionados |
+| `src/` | S0–S6 completo; S7.E1 README publico em `main` |
+| `test/` | 33 arquivos (32 unit + 1 integration) — **131 testes** passando |
+| `.cursor/` | Agents, rules e skills — **versionavel durante desenvolvimento**; remover na entrega FIAP (S7.E2) |
+| `data/models/` | `lgbm_orbitfire.pkl`, `metrics.json`, `thresholds.json` (gitignored) |
 | `data/seed/` | `fire_events_seed.csv`, `weather_daily_seed.csv` (versionados) |
 | `data/raw/` | Snapshots FIRMS/clima locais (gitignored) |
 | `data/orbitfire.db` | BD local de desenvolvimento (gitignored) |
 
-**Conclusao:** S0–S2 em `origin/main`. S3.E1 concluida localmente (79 testes); proxima: **S3.E2**.
+**Conclusao:** MVP tecnico (S0–S6) em `origin/main`. S7.E1 publicada; **S7.E2** pendente (PDF, video, links, limpeza `.cursor/`). Alteracoes locais nao commitadas: revisao README, `.gitignore`, `.cursor/`, `Escopo.md`.
 
-### Entrypoints manuais (Sprint 1)
+### Entrypoints manuais (pipeline completo)
 
 ```powershell
-# Na raiz, com venv e .env configurados — migracao TO (BD limpo)
+# Na raiz, com venv e .env configurados
+
+# Treino (uma vez)
 python -m src.application.build_grid
 python -m src.infrastructure.firms.ingest_historical
 python -m src.infrastructure.weather.ingest_historical
@@ -53,13 +56,19 @@ python -m src.application.build_features
 python -m src.application.build_labels
 python -m src.application.build_dataset
 python -m src.infrastructure.ml.train
+python -m src.application.calibrate_thresholds
 
-# Operacao diaria (apos treino)
+# Operacao diaria
 python -m src.infrastructure.firms.ingest
 python -m src.infrastructure.weather.ingest
 python -m src.application.predict_risk
 python -m src.application.rank_brigades
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+
+# API + dashboard
+uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+$env:PYTHONPATH = "."
+streamlit run src/dashboard/app.py
+
 pytest test/ -v
 ```
 
@@ -168,17 +177,19 @@ Ordem **obrigatoria** apos autorizacao da ultima etapa da Sprint:
 | S0 Fundacao | `feat(s0): fundacao OrbitFire — config, sqlite, seed offline` | Sim (`88f7913`) |
 | S1 Ingestao | `feat(s1): ingestao FIRMS, clima e grade Centro-Oeste` | Sim (`1850326`) |
 | S2 Features | `feat(s2): features, labels e dataset de modelagem` | Sim (`f35789b`) |
-| S3 Modelo | `feat(s3): treino LightGBM, risk score e inferencia` | Nao |
-| S4 Priorizacao | `feat(s4): priorizador de brigadas` | Nao |
-| S5 API | `feat(s5): API FastAPI e testes de integracao` | Nao |
-| S6 Dashboard | `feat(s6): dashboard Streamlit com mapa e ranking` | Nao |
-| S7 Entrega | `docs(s7): README final e checklist de entrega GS` | Nao |
+| S3 Modelo | `feat(s3): treino LightGBM, risk score e inferencia` | Sim (`cec5dc7`) |
+| S4 Priorizacao | `feat(s4): priorizador de brigadas` | Sim (`480b4b0`) |
+| S5 API | `feat(s5): API FastAPI e testes de integracao` | Sim (`094ef0b`) |
+| S6 Dashboard | `feat(s6): dashboard Streamlit com mapa e ranking` | Sim (`66b67d2`) |
+| S7 Entrega | `docs(s7): README com guia de instalacao e execucao` | Parcial (`a44f7fa` — E1); E2 pendente |
 
 ---
 
 ## Regra da raiz do repositorio
 
 Na raiz ficam **somente**: pastas (`data/`, `assets/`, `src/`, `test/`), `README.md` e `requirements.txt`.
+
+Durante o desenvolvimento, `.cursor/` (agents, rules, skills) pode ficar versionada; **remover na entrega FIAP** (S7.E2).
 
 Demais artefatos ficam dentro das pastas (ex.: `src/.env.example`, `src/config.py`, `test/conftest.py`). O `.env` real continua na raiz mas e gitignored.
 
@@ -258,25 +269,25 @@ fiap-gs-2026.1-OrbitFire/
 | S0 Fundacao | 3 | 3 | Concluida |
 | S1 Ingestao | 3 | 3 | Concluida |
 | S2 Features | 3 | 3 | Concluida |
-| S3 Modelo | 3 | 3 | **Concluida** (commit pendente) |
-| S4 Priorizacao | 2 | 2 | Concluida localmente |
-| S5 API | 2 | 2 | Concluida localmente |
-| S6 Dashboard | 2 | 2 | Concluida localmente |
-| S7 Entrega | 2 | 1 | Em andamento (E1 concluida) |
+| S3 Modelo | 3 | 3 | Concluida (`cec5dc7`) |
+| S4 Priorizacao | 2 | 2 | Concluida (`480b4b0`) |
+| S5 API | 2 | 2 | Concluida (`094ef0b`) |
+| S6 Dashboard | 2 | 2 | Concluida (`66b67d2`) |
+| S7 Entrega | 2 | 1 | Em andamento (E1 em `main`; E2 pendente) |
 
-**Etapa atual:** Sprint 7 — S7.E2 (revisao Godoy, PDF, video, links no README).
+**Etapa atual:** Sprint 7 — S7.E2 (revisao Godoy, PDF, video, links no README, limpeza `.cursor/`).
 
 ---
 
 ## Proximo passo imediato
 
-1. [x] Sprint 2 concluida — commit `f35789b`, push OK
-2. [x] S3.E1 implementada, testada e autorizada (`pytest` 79/79)
-3. [x] S3.E2 implementada — risk score e faixas (`pytest` 87/87)
-4. [x] S3.E3 implementada — inferencia batch (`predict_risk.py`, scores em SQLite)
-5. [ ] Refatoracao S0–S3 · `pytest test/ -v` · Commit · Push
+1. [x] S0–S6 commitadas e em `origin/main` (`88f7913` … `66b67d2`)
+2. [x] S7.E1 — README com arquitetura, instalacao e execucao (`a44f7fa`)
+3. [ ] Commit local pendente — revisao README (descricao, sem limitacoes), `.gitignore` (`.cursor/` versionavel), pasta `.cursor/`
+4. [ ] S7.E2 — video YouTube, PDF unico FIAP, links no README, checklist `assets/Escopo.md` secao 7
+5. [ ] Entrega final — remover `.cursor/` e qualquer referencia a IDE/IA do repositorio publico
 
-**Pre-requisito local:** grade e ingestoes no SQLite (`build_grid`, `firms.ingest`, `weather.ingest`) ou `OFFLINE_MODE=1` com seed.
+**Pre-requisito demo:** API + dashboard (`uvicorn` + `streamlit`) ou `OFFLINE_MODE=1` com seed.
 
 ---
 
@@ -716,11 +727,11 @@ pytest test/unit/test_predict_risk.py -v
 
 **Resumo:**
 - Refatoracao S0–S3: features centralizadas no dominio, cliente archive historico e testes alinhados ao TO.
-- Suite completa verde: `pytest test/ -v` (100 testes).
-- Commit Sprint 3 pendente de confirmacao; push apos merge local.
+- Suite completa verde: `pytest test/ -v` (100 testes na epoca; hoje 131).
+- Commit e push em `origin/main`.
 
 - [x] Refatoracao S0–S3 · `pytest test/ -v`
-- [x] Commit · Push (`480b4b0`)
+- [x] Commit · Push (`cec5dc7`)
 
 ---
 
@@ -753,7 +764,7 @@ pytest test/unit/test_rank_brigades.py -v
 
 ### Encerramento Sprint 4
 
-- [ ] Refatoracao S0–S4 · `pytest test/ -v` · Commit · Push
+- [x] Refatoracao S0–S4 · `pytest test/ -v` · Commit · Push (`480b4b0`)
 
 ---
 
@@ -788,7 +799,7 @@ uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 
 ### Encerramento Sprint 5
 
-- [ ] Refatoracao S0–S5 · `pytest test/ -v` · Commit · Push
+- [x] Refatoracao S0–S5 · `pytest test/ -v` · Commit · Push (`094ef0b`)
 
 ---
 
@@ -823,7 +834,7 @@ streamlit run src/dashboard/app.py
 
 ### Encerramento Sprint 6
 
-- [x] Refatoracao S0–S6 · `pytest test/ -v` (131 testes) · Commit · Push pendente
+- [x] Refatoracao S0–S6 · `pytest test/ -v` (131 testes) · Commit · Push (`66b67d2`)
 
 ---
 
@@ -853,21 +864,31 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 ### S7.E1 — README publico
 
 **Resumo:**
-- README com arquitetura, instalacao, pipeline de treino e operacao, API, dashboard, modo offline, testes e limitacoes da POC.
+- README publico com arquitetura, instalacao, pipeline de treino e operacao, API, dashboard, modo offline e testes (`a44f7fa`).
+- Descricao revisada localmente: texto mais coeso, sem redundancias; secao de limitacoes removida (commit pendente).
+- `.cursor/` liberada no Git durante desenvolvimento; exclusao obrigatoria na entrega (ver S7.E2).
 - Secao **Links e Observacoes** permanece pendente (repositorio, video, PDF).
 
-**Entregaveis:** `README.md` (install, execucao, arquitetura, limitacoes)
+**Entregaveis:** `README.md` (install, execucao, arquitetura)
 
 **Pendente no README:**
 
 - Secao **Links e Observacoes** (repositorio, video, decisoes tecnicas)
+- Commit da revisao de descricao e remocao de limitacoes
 
 ### S7.E2 — Revisao Godoy
 
 **Entregaveis:** checklist `assets/Escopo.md` secao 7; demo online + offline; PDF unico na plataforma
 
+**Limpeza obrigatoria na entrega final (antes do envio FIAP):**
+
+- Remover a pasta **`.cursor/`** do repositorio (agents, rules, skills).
+- Revisar README, codigo, commits e historico do Git: **nenhuma** referencia a Cursor, agents, assistentes de IA ou outra IDE usada no desenvolvimento.
+- Manter `.cursor/` versionada apenas durante o desenvolvimento interno; excluir no commit/tag de entrega.
+
 ### Encerramento Sprint 7
 
+- [ ] Remover `.cursor/` e referencias a IDE/IA do repositorio publico
 - [ ] Refatoracao S0–S7 · `pytest test/ -v` · Commit · Push
 
 ---
@@ -893,26 +914,9 @@ Todas as informacoes, links e documentacoes obrigatorias devem estar organizadas
 | 2026-06-06 | S3.E2 | Risk score, faixas e `thresholds.json` |
 | 2026-06-06 | S3 melhorias | Retreino TO — itens 1–4 (features, vizinhos, tuning, calibracao) |
 | 2026-06-06 | S3.E3 | Inferencia batch `predict_risk.py`, upsert em `risk_scores` |
-| 2026-06-05 | S6 | Dashboard Streamlit (mapa, KPIs, ranking, CSV); README treino vs operacao |
-
----
-
-## O que falta (visao geral)
-
-- [x] Preparacao — repo e documentacao em `assets/`
-- [x] Sprint 0 — fundacao (commit `88f7913`)
-- [x] Sprint 1 — ingestao FIRMS, clima e grade (commit `1850326`)
-- [x] Sprint 2 — features, labels e dataset (commit `f35789b`)
-- [x] Sprint 3 — LightGBM, risk score e inferencia (local; commit pendente)
-- [x] Sprint 4 — priorizador de brigadas (local; commit pendente)
-- [x] Sprint 5 — API FastAPI (local; commit pendente)
-- [x] Sprint 6 — dashboard Streamlit (local; commit pendente)
-- [x] Sprint 7 — S7.E1 README execucao (local; commit pendente)
-- [ ] Sprint 7 — S7.E2 revisao Godoy, PDF e video
-- [ ] M12 ESP32 (fora do MVP)
-
----
-
-## Duvidas abertas
-
-Proximo passo: Sprint 7 (README execucao, video, PDF e links entrega FIAP).
+| 2026-06-06 | S3 | Commit `cec5dc7` — modelo, risk score e inferencia |
+| 2026-06-06 | S4 | Commit `480b4b0` — priorizador de brigadas e ranking Top-N |
+| 2026-06-06 | S5 | Commit `094ef0b` — API FastAPI e testes de integracao |
+| 2026-06-06 | S6 | Commit `66b67d2` — dashboard Streamlit (mapa, KPIs, graficos, CSV) |
+| 2026-06-06 | S7.E1 | Commit `a44f7fa` — README instalacao e execucao |
+| 2026-06-06 | S7.E1 | Revisao local README (descricao, sem limitacoes); `.cursor/` no Git |

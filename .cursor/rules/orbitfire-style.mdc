@@ -1,0 +1,32 @@
+---
+description: OrbitFire — sem emoji; comentarios breves em codigo Python e testes
+globs: src/**/*.py,test/**/*.py
+alwaysApply: false
+---
+
+# Estilo de codigo
+
+## Sem emoji
+
+Proibido em: codigo, comentarios, docstrings, logs, mensagens de API, Streamlit e strings commitadas.
+
+## Sem citar ferramentas de IA
+
+Proibido mencionar assistentes de IA em codigo, comentarios, docstrings, logs e strings commitadas.
+
+## Comentarios obrigatorios
+
+- Toda **funcao publica** e **classe**: docstring ou comentario de uma linha (pt-BR).
+- **Blocos nao triviais** (parse CSV, dedup, score, agregacao SQL, features ML): comentario breve antes do bloco.
+- Comentar **porque**, nao o obvio.
+
+Skill: `write-code-comments`
+
+## Exemplo
+
+```python
+def build_region_key(lat: float, lon: float) -> str:
+    """Mapeia coordenadas para chave de celula no Centro-Oeste."""
+    # Lookup por grade configuravel; UF quando disponivel no poligono
+    ...
+```
