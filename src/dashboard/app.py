@@ -7,17 +7,18 @@ Execucao:
 
 from __future__ import annotations
 
-# set_page_config DEVE ser o primeiro comando Streamlit do modulo.
-# Se vier depois de qualquer outro st.*, lanca StreamlitAPIException.
+from datetime import date
+
 import streamlit as st
 
+# set_page_config deve ser o primeiro comando Streamlit do modulo.
+# Posicionado antes dos demais imports para garantir que nenhuma
+# importacao dispare comandos st.* antes desta configuracao.
 st.set_page_config(
     page_title="OrbitFire",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-from datetime import date
 
 from src.config import load_settings
 from src.dashboard.api_client import ApiClientError, OrbitFireApiClient
@@ -27,27 +28,11 @@ from src.dashboard.map_view import filter_risk_map_to_to, render_risk_map
 from src.dashboard.ranking_view import render_ranking
 from src.dashboard.sidebar import render_sidebar
 
-# Tagline exibida abaixo do titulo — explica o projeto sem abrir o README
+# Tagline exibida abaixo do titulo — explica o projeto sem abrir o README.
 _TAGLINE = (
     "Cruza deteccoes satelitais NASA FIRMS com clima local para indicar "
-    "onde o risco de incendio amanha e maior no Tocantins — e priorizar brigadas."
+    "onde o risco de incendio amanha e maior no Tocantins e priorizar brigadas."
 )
-
-
-# Cache de 5 minutos para nao sobrecarregar a API a cada re-render do Streamlit.
-# A chave de cache e a URL da API, nao o objeto cliente (que nao e hashavel).
-@st.cache_data(ttl=300, show_spinner=False)
-def _cached_risk_map(base_url: str, band: str | None, reference_date: str | None) -> dict:
-    """Busca mapa de risco e mantém cache por 5 minutos."""
-    client = OrbitFireApiClient(base_url)
-    return client.risk_map(band=band, reference_date=reference_date)
-
-
-@st.cache_data(ttl=300, show_spinner=False)
-def _cached_fires_summary(base_url: str) -> dict:
-    """Busca resumo historico de focos e mantém cache por 5 minutos."""
-    client = OrbitFireApiClient(base_url)
-    return client.fires_summary(days=30, top_cells=15)
 
 
 def main() -> None:
@@ -57,11 +42,11 @@ def main() -> None:
 
     settings = load_settings()
 
-    # BUG CORRIGIDO: o construtor recebe base_url (str), nao o objeto settings.
-    # OrbitFireApiClient.from_settings() nao existe — causava AttributeError.
+    # BUG 1 CORRIGIDO: from_settings() nao existe no OrbitFireApiClient.
+    # O construtor aceita apenas base_url (str), conforme test_dashboard_api_client.py.
     client = OrbitFireApiClient(settings.api_base_url)
 
-    # Health check: se a API nao responder, exibe instrucao acionavel e para.
+    # Health check: exibe instrucao acionavel e para se a API nao responder.
     try:
         health = client.health()
     except ApiClientError:
@@ -71,89 +56,79 @@ def main() -> None:
         )
         st.stop()
 
-    # Sidebar: filtros globais e status offline/online
-    filters = render_sidebar(client)
+    # Sidebar: filtros e status offline/online.
+    default_ref = _parse_reference_date(health.get("reference_date"))
+    filters = render_sidebar(default_ref)
 
-    # ── Secao de KPIs ────────────────────────────────────────────────────────
-    # BUG CORRIGIDO: risk_map() retorna dict {"cells": [...], ...},
-    # nao uma lista direta. filter_risk_map_to_to() espera lista.
-    cells: list[dict] = []
-    fires_active: list[dict] = []
+    # Exibe modo operacional na sidebar apos carregar o health.
+    mode_label = "Modo Offline" if health.get("offline_mode") else "Modo Online"
+    st.sidebar.caption(f"{mode_label} | {settings.api_base_url}")
 
+    # ── Busca dados da API (cada secao trata erro independentemente) ──────────
+
+    risk_map: dict = {}
     try:
-        risk_payload = _cached_risk_map(
-            settings.api_base_url,
-            band=filters.get("band") if filters.get("band") != "Todos" else None,
-            reference_date=filters.get("reference_date"),
+        # BUG 2 CORRIGIDO: client.risk_map() retorna dict completo.
+        # filter_risk_map_to_to() recebe o dict e devolve versao filtrada
+        # com total_cells (~2285) e band_counts corretos para o poligono TO.
+        risk_map = filter_risk_map_to_to(
+            client.risk_map(
+                reference_date=filters.reference_date,
+                band=filters.band,
+                uf=filters.uf,
+            )
         )
-        # Extrai a lista de celulas do payload e filtra para o poligono TO
-        raw_cells = risk_payload.get("cells", [])
-        cells = filter_risk_map_to_to(raw_cells)
     except ApiClientError as exc:
         st.warning(f"Mapa de risco indisponivel: {exc}")
 
+    fires_payload: dict = {"fires": []}
     try:
-        # BUG CORRIGIDO: fires_active() nao aceita parametro hours=24.
-        # A assinatura real e client.fires_active() sem argumentos.
+        # BUG 3 CORRIGIDO: fires_active() nao aceita parametro hours=24.
         fires_payload = client.fires_active()
-        # Extrai lista de eventos do payload (estrutura: {"fires": [...]} ou lista direta)
-        fires_active = (
-            fires_payload if isinstance(fires_payload, list)
-            else fires_payload.get("fires", [])
-        )
     except ApiClientError:
-        fires_active = []
+        fires_payload = {"fires": []}
 
-    # KPIs usam o mesmo recorte do mapa (celulas dentro do TO)
-    render_kpis(
-        cells=cells,
-        fires_active=fires_active,
-        reference_date=filters.get("reference_date"),
-    )
+    fires_summary: dict = {}
+    try:
+        fires_summary = client.fires_summary(days=30, top_cells=15)
+    except ApiClientError:
+        pass
 
+    ranking: dict = {}
+    try:
+        ranking = client.risk_ranking(
+            reference_date=filters.reference_date or default_ref,
+            top_n=filters.top_n,
+        )
+    except ApiClientError as exc:
+        st.warning(f"Ranking indisponivel: {exc}")
+
+    # BUG 4 CORRIGIDO: fires_payload.get("total", 0) retornava sempre 0
+    # porque o endpoint retorna {"fires": [...]} sem chave "total".
+    active_fires_24h = len(fires_payload.get("fires", []))
+
+    # ── KPIs ─────────────────────────────────────────────────────────────────
+    render_kpis(health, risk_map, active_fires_24h=active_fires_24h)
     st.divider()
 
     # ── Mapa de risco preditivo ───────────────────────────────────────────────
-    st.subheader("Mapa de risco preditivo — Tocantins")
-    if cells:
-        render_risk_map(
-            cells=cells,
-            fire_events=fires_active if filters.get("show_fires") else [],
-            show_fires=filters.get("show_fires", True),
-        )
-    else:
-        st.info(
-            "Nenhum dado de risco disponivel para o periodo selecionado. "
-            "Execute predict_risk para gerar scores."
-        )
-
+    # Passa o dict completo de focos; render_risk_map extrai fires.get("fires").
+    fires_para_mapa = fires_payload if filters.show_fires else None
+    render_risk_map(risk_map, fires_para_mapa, show_fires=filters.show_fires)
     st.divider()
 
     # ── Graficos de comportamento historico de focos ──────────────────────────
-    # BUG CORRIGIDO: era chamado sem tratar ApiClientError,
-    # causando crash silencioso se /fires/summary nao existir.
-    try:
-        summary = _cached_fires_summary(settings.api_base_url)
-        render_fires_charts(summary)
-    except ApiClientError:
-        st.warning(
+    if fires_summary:
+        render_fires_charts(fires_summary)
+    else:
+        st.info(
             "Dados historicos de focos indisponiveis. "
             "Verifique se o endpoint /fires/summary esta implementado na API."
         )
-
     st.divider()
 
     # ── Ranking de brigadas ───────────────────────────────────────────────────
-    try:
-        # BUG CORRIGIDO: parametro era reference_date=filters.reference_date
-        # mas filters e um dict, nao um objeto com atributos.
-        ranking = client.risk_ranking(
-            top_n=filters.get("top_n", 10),
-            reference_date=filters.get("reference_date"),
-        )
-        render_ranking(ranking.get("entries", []), top_n=filters.get("top_n", 10))
-    except ApiClientError as exc:
-        st.warning(f"Ranking de brigadas indisponivel: {exc}")
+    render_ranking(ranking)
 
 
 def _parse_reference_date(value: str | date | None) -> date | None:
