@@ -48,6 +48,20 @@ O classificador prevê **fogo amanhã** por célula. O holdout é temporal: jun�
 | F1 (thr ótimo) | 0,45 | **0,58** |
 | Falsos positivos (teste) | 11.656 | **3.658** |
 
+### Por que o recall é ~57%?
+
+O modelo prevê **condições favoráveis ao incêndio**, não o incêndio em si.
+O fogo depende de um fator humano (ignição) que nenhum dado orbital ou
+climático consegue antecipar. Quando o modelo prevê alto risco e não há fogo,
+não significa erro — significa que as condições estavam presentes, mas o
+fator humano não ocorreu.
+
+Operacionalmente, isso é aceitável: o objetivo é **posicionar brigadas**
+em regiões propensas ao fogo, não prever com certeza onde ele vai acontecer.
+A métrica mais relevante para esse objetivo é o **AUC-ROC (0,868)**, que
+mede a capacidade de separar regiões de alto e baixo risco independentemente
+do limiar de decisão.
+
 #### Matriz de confusão (teste set/2024)
 
 ![Matriz de confusão do modelo OrbitFire no conjunto de teste set/2024 — threshold 0,80, AUC 0,868, F1 0,58](assets/confusion_matrix.png)
@@ -185,6 +199,25 @@ python -m src.application.predict_risk
 
 ### API e dashboard
 
+## O que o dashboard mostra
+
+Ao abrir o painel em `http://localhost:8501`, o usuário vê:
+
+- **4 KPIs no topo**: células monitoradas dentro do TO (~2.285),
+  contagem de células em nível alto ou crítico, focos ativos nas
+  últimas 24h e a data de referência da inferência mais recente.
+- **Mapa de calor interativo**: risco preditivo por célula dentro
+  do polígono do Tocantins. Células com risco alto ou crítico recebem
+  marcadores. Focos FIRMS ativos podem ser sobrepostos via checkbox.
+- **Gráficos de comportamento**: sazonalidade histórica de focos por
+  mês e ranking das células com maior incidência histórica.
+- **Ranking de brigadas**: Top-N células priorizadas com justificativa
+  operacional (ex.: "faixa crítico com 2 focos nas últimas 24h e
+  3 focos em células vizinhas"). Exportável em CSV.
+
+O dashboard **não acessa o banco diretamente** — consome exclusivamente
+a API REST em `API_BASE_URL`.
+
 Com scores no SQLite, suba a API e o painel em **dois terminais** (na raiz do projeto):
 
 ```powershell
@@ -201,6 +234,11 @@ Se a porta 8000 estiver ocupada, use outra (ex.: `8001`) e ajuste `API_BASE_URL`
 **Reinicie a API** após alterar código do backend — o dashboard depende dos endpoints atualizados (ex.: `/fires/summary`).
 
 ### Modo demo offline
+
+> **Para a banca:** o modo offline permite apresentar toda a solução
+> (ingestão → inferência → API → dashboard) sem internet e sem chave
+> NASA FIRMS. Os dados seed representam focos e clima reais do Tocantins
+> e são suficientes para demonstrar o funcionamento completo do sistema.
 
 Para apresentação sem internet nem chave FIRMS:
 
