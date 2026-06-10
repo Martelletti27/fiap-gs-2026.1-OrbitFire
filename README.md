@@ -134,37 +134,37 @@ O dashboard **não** acessa o banco diretamente — consome `API_BASE_URL`.
   - Demonstração prática do funcionamento da solução
   - Postagem como **não listado**, com link anexado ao final do PDF
 - <b>Decisões técnicas</b>:
-- - **LightGBM como classificador**: escolhido pela velocidade de treino, robustez
+  - **LightGBM como classificador**: escolhido pela velocidade de treino, robustez
   com dados desbalanceados (~9% de positivos) e importância de features interpretável.
   Alternativas como Random Forest e XGBoost foram descartadas por custo computacional
   no volume de 502 mil linhas.
-- - **Holdout temporal**: treino em jun–ago/2024, teste em set/2024 — simula uso real
+  - **Holdout temporal**: treino em jun–ago/2024, teste em set/2024 — simula uso real
   e evita data leakage que ocorreria com split aleatório em séries temporais.
-- - **AUC-ROC como métrica principal**: o objetivo é *ranquear* células por risco,
+  - **AUC-ROC como métrica principal**: o objetivo é *ranquear* células por risco,
   não classificar com limiar fixo. AUC-ROC mede separação independentemente do threshold,
   o que é mais adequado para priorização de brigadas do que F1 ou acurácia.
-- - **Duas calibragens pós-treino**: faixas de risk score (percentis 50/75/90 → baixo/
+  - **Duas calibragens pós-treino**: faixas de risk score (percentis 50/75/90 → baixo/
   médio/alto/crítico) e threshold de classificação (0,80) que maximiza F1 no teste.
-- - **SQLite sem servidor**: zero infraestrutura, banco portátil em arquivo único —
+  - **SQLite sem servidor**: zero infraestrutura, banco portátil em arquivo único —
   adequado ao escopo do projeto e suficiente para o volume de dados do Tocantins.
-- - **Dashboard desacoplado da API**: o Streamlit consome exclusivamente HTTP — nenhum
+  - **Dashboard desacoplado da API**: o Streamlit consome exclusivamente HTTP — nenhum
   import direto do banco ou do modelo. Isso permite escalar API e dashboard de forma
   independente em produção.
-- - **Grade de células de 0,1°**: resolução espacial suficiente para identificar regiões
+  - **Grade de células de 0,1°**: resolução espacial suficiente para identificar regiões
   prioritárias sem exceder a capacidade de processamento do modelo em inferência diária.
-- - **Open-Meteo para clima**: gratuito, sem chave, com endpoints Archive (histórico)
+  - **Open-Meteo para clima**: gratuito, sem chave, com endpoints Archive (histórico)
   e Forecast (previsão) — o mesmo cliente atende treino e operação sem alteração de código.
-- - **Modo offline com modelo commitado**: o modelo treinado (`lgbm_orbitfire.pkl`) está
+  - **Modo offline com modelo commitado**: o modelo treinado (`lgbm_orbitfire.pkl`) está
   incluído no repositório, permitindo demonstração completa sem internet ou chave FIRMS.
 - <b>Observações gerais</b>:
-- - Projeto desenvolvido exclusivamente para a Global Solution FIAP 2026.1 —
+  - Projeto desenvolvido exclusivamente para a Global Solution FIAP 2026.1 —
   sem inscrição em competições externas.
-- - O modelo prevê **condições favoráveis ao incêndio**, não o incêndio em si.
+  - O modelo prevê **condições favoráveis ao incêndio**, não o incêndio em si.
   Falsos positivos não representam erro operacional: indicam que as condições
   estavam presentes, mas a ignição (fator humano) não ocorreu.
-- - O modo demo offline cobre o fluxo completo (ingestão → inferência → API →
+  - O modo demo offline cobre o fluxo completo (ingestão → inferência → API →
   dashboard) em cinco comandos, sem dependências externas além do Python 3.10+.
-- - O repositório segue a estrutura de camadas (domínio, aplicação, infraestrutura,
+  - O repositório segue a estrutura de camadas (domínio, aplicação, infraestrutura,
   API, dashboard) para facilitar manutenção e extensão futura para outros estados.
 
 
