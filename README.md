@@ -128,8 +128,8 @@ O dashboard **não** acessa o banco diretamente — consome `API_BASE_URL`.
 
 > **Pendente para entrega (S7):** preencher esta seção antes do envio na plataforma.
 
-- <b>Repositório do projeto</b>: _(link do GitHub — inserir na entrega)_
-- <b>Vídeo no YouTube (até 5 min, não listado)</b>: _(inserir link)_
+- <b>Repositório do projeto</b>: ([Link do respositório](https://github.com/Martelletti27/fiap-gs-2026.1-OrbitFire))
+- <b>Vídeo no YouTube (até 5 min, não listado)</b>: ([Link do vídeo do YouTube](https://youtu.be/I9xwbyX41wI))
   - Explicação clara da integração entre disciplinas
   - Demonstração prática do funcionamento da solução
   - Postagem como **não listado**, com link anexado ao final do PDF
